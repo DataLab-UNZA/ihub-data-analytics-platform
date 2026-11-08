@@ -1,0 +1,40 @@
+name: Bug report
+description: Something is broken or the numbers look wrong
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Commands run, page visited, filters used.
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Where
+      options:
+        - Connector (ingestion)
+        - Staging / intermediate (dbt)
+        - Research mart (dbt)
+        - Web app (Streamlit)
+        - CI / deployment
+        - Not sure
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error messages or logs
+      description: Remove any API keys or tokens before pasting.
+      render: shell

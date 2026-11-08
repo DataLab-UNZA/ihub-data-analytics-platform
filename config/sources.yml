@@ -1,0 +1,20 @@
+# Source connectors and their NON-SECRET settings.
+# Secrets (API keys, client secrets) go in environment variables: see .env.example.
+# Identifiers marked "verify" must be confirmed when the connector is built.
+
+sources:
+  openalex:
+    enabled: true
+    base_url: https://api.openalex.org
+    institution_ror: null        # verify: UNZA's ROR ID
+  orcid:
+    enabled: true
+    base_url: https://pub.orcid.org/v3.0
+  dspace_oai:
+    enabled: true
+    oai_endpoint: null           # verify: UNZA repository OAI-PMH endpoint
+    metadata_prefix: oai_dc
+  ojs:
+    enabled: true
+    base_url: null               # verify: UNZA OJS base URL
+    journals: []                 # verify: the 15 journal paths

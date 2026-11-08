@@ -1,0 +1,8 @@
+# No secrets here: the DuckDB path comes from an environment variable.
+ihub:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('IHUB_DUCKDB_PATH', '../data/ihub.duckdb') }}"
+      threads: 4
