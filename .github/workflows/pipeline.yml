@@ -1,0 +1,106 @@
+name: Pipeline
+
+# Weekly data refresh (Mondays 02:00 UTC = 04:00 in Lusaka), or by hand.
+# 1. build-data: runs the connectors and dbt, then publishes ihub.duckdb as the
+#    GitHub Release data-YYYY-MM-DD (keeping the five newest).
+# 2. live-commit: finds the commit that is currently live on Cloud Run.
+# 3. redeploy: rebuilds that same commit with the new data, so a data refresh
+#    never ships code that has not been approved for production.
+# API credentials are secrets of the "pipeline" environment (main only).
+# See docs/DEPLOYMENT.md.
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: pipeline
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-data:
+    name: build-data
+    runs-on: ubuntu-latest
+    environment: pipeline
+    permissions:
+      contents: write # to publish the data release
+    env:
+      IHUB_DUCKDB_PATH: ${{ github.workspace }}/data/ihub.duckdb
+      OPENALEX_MAILTO: ${{ vars.OPENALEX_MAILTO }}
+      OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+      ORCID_CLIENT_ID: ${{ secrets.ORCID_CLIENT_ID }}
+      ORCID_CLIENT_SECRET: ${{ secrets.ORCID_CLIENT_SECRET }}
+      OJS_API_TOKEN: ${{ secrets.OJS_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies (app + dbt)
+        run: |
+          uv python install 3.12
+          uv sync --group pipeline
+
+      - name: Run connectors
+        run: uv run python -m ihub.ingest
+
+      - name: Build marts (dbt)
+        working-directory: transform
+        run: uv run dbt build --profiles-dir .
+
+      - name: Publish data release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="data-$(date -u +%Y-%m-%d)"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" data/ihub.duckdb --clobber
+          else
+            gh release create "$tag" data/ihub.duckdb \
+              --title "Data $(date -u +'%B %-d, %Y')" \
+              --notes "DuckDB file built by the Pipeline workflow from commit ${GITHUB_SHA}. Public research metadata only." \
+              --latest=false
+          fi
+          gh release list --limit 100 --json tagName,createdAt \
+            --jq '[.[] | select(.tagName | startswith("data-"))] | sort_by(.createdAt) | reverse | .[5:] | .[].tagName' \
+            | while read -r old; do gh release delete "$old" --yes --cleanup-tag; done
+
+  live-commit:
+    name: live-commit
+    needs: build-data
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      sha: ${{ steps.live.outputs.sha }}
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Find the commit that is live
+        id: live
+        run: |
+          sha="$(gcloud run services describe ihub-app --region "${{ vars.GCP_REGION }}" \
+            --format='value(metadata.labels.commit-sha)' 2>/dev/null || true)"
+          echo "sha=${sha:-$GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "Redeploying commit ${sha:-$GITHUB_SHA} with the new data." >> "$GITHUB_STEP_SUMMARY"
+
+  redeploy:
+    name: redeploy
+    needs: live-commit
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: ${{ needs.live-commit.outputs.sha }}
+      environment: pipeline

@@ -50,7 +50,7 @@ sources -> connectors (Python) -> raw -> staging -> intermediate -> marts -> Str
 - British English in docs, UI text and comments.
 - dbt model names: `stg_<source>__<entity>`, `int_<entity>__<purpose>`, `fact_<name>`, `dim_<name>`, `bridge_<a>_<b>`.
 - Every new connector gets a pytest test that uses recorded sample responses. Tests never call live APIs.
-- **No secrets in the repository, ever.** API keys go in `.env` locally and in GitHub repository secrets for Actions. Every variable name must be listed in `.env.example`. No data files or `.duckdb` files are committed.
+- **No secrets in the repository, ever.** API keys go in `.env` locally and in the GitHub `pipeline` environment (secrets restricted to `main`) for Actions. Every variable name must be listed in `.env.example`. No data files or `.duckdb` files are committed.
 - Architecture changes get a short ADR in `docs/decisions/` (`ADR-NNN-title.md`).
 - Research metadata may be public. Future sensitive sources (students, HR, payroll) must never be published as release assets or printed in public workflow logs. They need private storage and access control, recorded in an ADR before any work starts.
 - `main` is protected: changes go through pull requests only, and CI must pass.

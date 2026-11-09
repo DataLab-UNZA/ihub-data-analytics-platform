@@ -69,7 +69,7 @@ Requirements: [uv](https://docs.astral.sh/uv/) and Git. uv installs Python 3.12 
 
 ```bash
 # 1. Clone
-git clone https://github.com/lightonphiri/ihub-data-analytics-platform.git
+git clone https://github.com/DataLab-UNZA/ihub-data-analytics-platform.git
 cd ihub-data-analytics-platform
 
 # 2. Create the environment and install everything (app + dev tools + dbt)
@@ -94,12 +94,17 @@ uv run pytest
 
 # Web app (opens at http://localhost:8501)
 uv run streamlit run src/ihub/app/Home.py
+
+# Pipeline (no connectors yet: creates data/ihub.duckdb and records the run)
+uv run python -m ihub.ingest
 ```
 
-The ingestion and dbt commands will be added here as the connectors and models are built.
+## Deployment
+
+The app is live at **https://ihub-app-197899767407.africa-south1.run.app** (Google Cloud Run, Johannesburg). Every merge to `main` deploys automatically once a member of the `ihub-deployers` team approves it in GitHub Actions, and a weekly pipeline refreshes the data. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for how it works, how to roll back and how to check costs.
 
 ## Contributing
 
 - `main` is protected: all changes go through a pull request, and CI (lint + tests) must pass.
 - Work in mob sessions follows the rules in [`CLAUDE.md`](CLAUDE.md), including the prompt log and commit-message format.
-- Never commit secrets. Put API keys in `.env` locally and in GitHub repository secrets for Actions. Every variable name is listed in `.env.example`.
+- Never commit secrets. Put API keys in `.env` locally and in the GitHub `pipeline` environment for Actions. Every variable name is listed in `.env.example`.
