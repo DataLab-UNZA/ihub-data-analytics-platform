@@ -1,8 +1,0 @@
-# Dependency file for Streamlit Community Cloud.
-#
-# Installing the project in editable mode (-e .) pulls in the runtime
-# dependencies declared in pyproject.toml ([project].dependencies) and makes
-# `import ihub` resolve from the src/ layout. The dev and pipeline dependency
-# groups are intentionally not installed here; the running app needs neither.
-# Local development and the pipeline use uv (see README.md and docs/DEPLOYMENT.md).
--e .

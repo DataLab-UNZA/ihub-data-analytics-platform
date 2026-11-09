@@ -1,4 +1,0 @@
-# Streamlit settings shared by local runs and Streamlit Community Cloud.
-
-[browser]
-gatherUsageStats = false
