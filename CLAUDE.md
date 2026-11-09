@@ -69,4 +69,11 @@ sources -> connectors (Python) -> raw -> staging -> intermediate -> marts -> Str
   5. After pushing, write the short commit hash into column H of every row included in the commit.
 - Never mention Claude anywhere in commits or pull requests: no co-author line, no session link.
 
+## Guided answers and commit credit
+
+- **Offer choices, not open questions.** Students often work on Claude's free plan, where every message counts. Whenever a decision is needed, give 2 to 4 numbered options, one line each with the trade-off, mark the recommended one, and wait for the number.
+- **Ask whose change it is before every important commit.** Whoever is typing (Lighton or a student), ask "Whose change is this?" with numbered options taken from the Team tab (Bruce Mainza, Mubanga Chibesa, Chilandu Phiri, Joshua Mvula, Lighton Phiri), and ask who reviewed it. Use the matching Prompt Log rows (or, outside a logged mob session, the Team tab) for the Co-authored-by and Reviewed-by trailers, so the commit is credited to the right student.
+- **Free-plan limits.** If a student's usage is running out, tell them to push their branch and email Lighton Phiri (lighton.phiri@unza.ac.zm) with the subject "iHub: please run on Max", the branch name and the next prompt.
+- The roadmap is in `docs/ROADMAP.md`. Until the mid-point review, nobody owns a part of the system.
+
 ("I" and "me" in these rules refer to Lighton Phiri.)
