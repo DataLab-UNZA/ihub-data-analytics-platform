@@ -1,0 +1,8 @@
+# Streamlit settings shared by local runs and the Cloud Run container.
+[server]
+headless = true
+# Serves src/ihub/app/static/ at /app/static/ (used by the idle "session paused" page).
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false

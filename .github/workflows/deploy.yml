@@ -1,0 +1,117 @@
+name: Deploy
+
+# Builds the web app image with the newest data release and deploys it to
+# Google Cloud Run. Runs on every merge to main (after approval in the
+# "production" environment), by hand (optionally for an older commit, to roll
+# back) and from the Pipeline workflow after a data refresh.
+# Authenticates with Workload Identity Federation: no keys are stored anywhere.
+# See docs/DEPLOYMENT.md.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit to deploy (leave empty for the latest main; use an older commit to roll back)"
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      ref:
+        description: "Commit to deploy"
+        required: true
+        type: string
+      environment:
+        description: "GitHub environment for the deploy job"
+        required: false
+        type: string
+        default: production
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  SERVICE: ihub-app
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment || 'production' }}
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      REF: ${{ inputs.ref || github.sha }}
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ihub/app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.REF }}
+
+      - name: Download the newest data release
+        id: data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,createdAt \
+            --jq '[.[] | select(.tagName | startswith("data-"))] | sort_by(.createdAt) | last | .tagName // ""')"
+          if [ -n "$tag" ]; then
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern ihub.duckdb --dir data
+            echo "Using data release $tag" >> "$GITHUB_STEP_SUMMARY"
+          else
+            tag="none"
+            echo "No data release yet: deploying without data." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to Google Cloud (keyless)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push the image
+        run: |
+          gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
+          docker build --tag "$IMAGE:$REF" .
+          docker push "$IMAGE:$REF"
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        run: |
+          short="$(echo "$REF" | cut -c1-12)"
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE:$REF" \
+            --region "${{ vars.GCP_REGION }}" \
+            --service-account "${{ vars.GCP_RUNTIME_SA }}" \
+            --no-invoker-iam-check \
+            --min-instances 0 --max-instances 1 \
+            --cpu 1 --memory 512Mi --cpu-throttling \
+            --concurrency 80 --timeout 3600 --session-affinity \
+            --port 8080 \
+            --labels "commit-sha=$REF,data-tag=${{ steps.data.outputs.tag }}" \
+            --update-annotations "ihub/commit=$short" \
+            --quiet
+          url="$(gcloud run services describe "$SERVICE" --region "${{ vars.GCP_REGION }}" --format='value(status.url)')"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Check the app responds
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS "${{ steps.deploy.outputs.url }}/_stcore/health"; then
+              echo; echo "Live at ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+              echo "Commit \`$REF\`" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "The app did not respond to the health check." >&2
+          exit 1
