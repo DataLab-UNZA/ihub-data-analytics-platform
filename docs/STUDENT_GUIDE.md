@@ -119,7 +119,7 @@ issue ──► branch ──► code with Claude ──► checks pass ──�
    git push -u origin feature/openalex-connector
    ```
 6. **Open a pull request**: GitHub shows a **Compare & pull request** button after you push. Fill in the template (Part 3). Write `Closes #12` (your issue number) so the issue closes when it merges.
-7. **Review**: ask one teammate to review it (**Reviewers** on the right). GitHub does not force a review, but we expect one: merge after a teammate has approved, or after Lighton says so. You review teammates' pull requests the same way (Prompt 6 helps).
+7. **Review**: ask one teammate to review it (**Reviewers** on the right). Every pull request requires at least one approving teammate before it is merged. The `main` branch should enforce one approving review and the `lint-and-test` check; if GitHub still permits a merge without approval, stop and ask an organisation owner to correct the branch-protection settings. You review teammates' pull requests the same way (Prompt 6 helps).
 8. **CI**: the `lint-and-test` check must be green. A red check blocks the merge; fix it on the same branch and push again.
 9. **Merge** with **Merge pull request**, then delete the branch when GitHub offers.
 10. **Deploy** (only if the change affects the app): see Part 5.
