@@ -1,9 +1,9 @@
 """Run the ingestion step of the pipeline: ``python -m ihub.ingest``.
 
-Creates (or opens) the DuckDB file at ``IHUB_DUCKDB_PATH``, runs every
-registered connector and records the run in ``meta.pipeline_runs``. No
-connectors exist yet, so for now this only records the run; the pipeline
-still produces a valid DuckDB file that the app can open.
+Creates (or opens) the DuckDB file at ``IHUB_DUCKDB_PATH``, runs every enabled
+connector listed in ``config/sources.yml``, writes each source's records unchanged
+to its ``raw_<source>`` schema and records the run in ``meta.pipeline_runs``.
+Run it from the repository root.
 """
 
 from __future__ import annotations
@@ -11,13 +11,26 @@ from __future__ import annotations
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import duckdb
+import yaml
 
+from ihub.connectors.base import Connector
+from ihub.connectors.openalex import OpenAlexConnector
+from ihub.ingest.raw import write_raw
 from ihub.settings import get_settings
 
-# Connector classes are added here as they are built (OpenAlex, DSpace, OJS, ORCID).
-CONNECTORS: list[type] = []
+CONFIG_PATH = Path("config/sources.yml")
+
+# Connector classes are added here as they are built (DSpace, OJS, ORCID next).
+CONNECTORS: list[type[Connector]] = [OpenAlexConnector]
+
+
+def load_source_config(path: Path = CONFIG_PATH) -> dict[str, dict[str, Any]]:
+    """Return the ``sources`` section of ``config/sources.yml``."""
+    with path.open(encoding="utf-8") as handle:
+        return yaml.safe_load(handle)["sources"]
 
 
 def record_run(db_path: Path, commit_sha: str | None, connectors_run: int) -> None:
@@ -41,11 +54,21 @@ def record_run(db_path: Path, commit_sha: str | None, connectors_run: int) -> No
 
 
 def main() -> None:
-    """Run all connectors and record the pipeline run."""
+    """Run all enabled connectors and record the pipeline run."""
     settings = get_settings()
+    sources = load_source_config()
+    connectors_run = 0
     for connector_cls in CONNECTORS:
-        connector_cls().run()
-    record_run(settings.ihub_duckdb_path, os.environ.get("GITHUB_SHA"), len(CONNECTORS))
+        name = connector_cls.source_name
+        source_config = sources.get(name, {})
+        if not source_config.get("enabled", False):
+            print(f"Skipping {name}: not enabled in {CONFIG_PATH}")
+            continue
+        connector = connector_cls(source_config)
+        written = write_raw(settings.ihub_duckdb_path, f"raw_{name}", connector.fetch())
+        print(f"Wrote {written} records to raw_{name}.records")
+        connectors_run += 1
+    record_run(settings.ihub_duckdb_path, os.environ.get("GITHUB_SHA"), connectors_run)
     print(f"Recorded pipeline run in {settings.ihub_duckdb_path}")
 
 
