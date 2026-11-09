@@ -1,6 +1,6 @@
 # Deployment
 
-The web app runs on **Google Cloud Run** in the project `ihub-data-analytics-platform` (region `africa-south1`, Johannesburg), owned by `lighton.phiri@unza.ac.zm`. Deployment is automatic: **merge to `main`, a member of `ihub-deployers` approves, and the app is live a few minutes later.** Nobody needs Google Cloud access. The reasons for this design are in [ADR-002](decisions/ADR-002-hosting.md).
+The web app runs on **Google Cloud Run** in the project `ihub-data-analytics-platform` (region `africa-south1`, Johannesburg), owned by `lighton.phiri@unza.ac.zm`. Deployment is automatic: **merge to `main`, a member of `ihub-deployers` approves, and the app is live a few minutes later.** Merges that change only documentation, tests or the context pack (see the `paths-ignore` list in `deploy.yml`) do not start a deploy. Nobody needs Google Cloud access. The reasons for this design are in [ADR-002](decisions/ADR-002-hosting.md).
 
 - **Public URL:** https://ihub-app-197899767407.africa-south1.run.app
 
@@ -15,14 +15,15 @@ Monday 02:00 UTC ──► Pipeline workflow ──► connectors + dbt ──�
 | Workflow | When it runs | What it does |
 |---|---|---|
 | `CI` (`ci.yml`) | every PR and push to `main` | ruff and pytest; must pass before a PR can merge |
-| `Deploy` (`deploy.yml`) | every push to `main`; by hand; called by Pipeline | downloads the newest `data-*` release, builds the image, pushes it to Artifact Registry, deploys `ihub-app`, checks `/_stcore/health` and writes the URL to the run summary |
+| `Deploy` (`deploy.yml`) | every push to `main` that changes the app; by hand; called by Pipeline | downloads the newest `data-*` release, builds the image, pushes it to Artifact Registry, deploys `ihub-app`, checks `/_stcore/health` and writes the URL to the run summary |
+| `Context pack` (`context-pack.yml`) | every push to `main`, issue changes; by hand | rebuilds the context pack for Claude chats and publishes it on the `context-pack` release (no deploy) |
 | `Pipeline` (`pipeline.yml`) | Mondays 02:00 UTC (04:00 in Lusaka); by hand | runs `python -m ihub.ingest` and `dbt build`, publishes `ihub.duckdb` as `data-YYYY-MM-DD` (keeps the 5 newest), then redeploys the live commit with that data |
 
 GitHub Actions signs in to Google Cloud with **Workload Identity Federation**: GitHub issues a short-lived token for each run, and Google accepts it only from this repository's `main` branch. No key or password for Google Cloud is stored anywhere, so a workflow on a student's branch cannot deploy.
 
 ## Approving a deployment
 
-After a merge, the Deploy run pauses with **"Waiting for review"**. Any member of the `ihub-deployers` team (Lighton and the four students) can approve it:
+After a merge, the Deploy run pauses with **"Waiting for review"**. Any member of the `ihub-deployers` team (Lighton and the four students) can approve it; `mubanga-chibesa` is also listed as an individual reviewer:
 
 1. GitHub → **Actions** → the waiting **Deploy** run → **Review deployments**.
 2. Tick **production** → **Approve and deploy**.
