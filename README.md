@@ -69,7 +69,7 @@ Requirements: [uv](https://docs.astral.sh/uv/) and Git. uv installs Python 3.12 
 
 ```bash
 # 1. Clone
-git clone https://github.com/lightonphiri/ihub-data-analytics-platform.git
+git clone https://github.com/DataLab-UNZA/ihub-data-analytics-platform.git
 cd ihub-data-analytics-platform
 
 # 2. Create the environment and install everything (app + dev tools + dbt)
@@ -96,7 +96,15 @@ uv run pytest
 uv run streamlit run src/ihub/app/Home.py
 ```
 
-The ingestion and dbt commands will be added here as the connectors and models are built.
+```bash
+# Pipeline (creates data/ihub.duckdb; connectors are added as they are built)
+uv run python -m ihub.ingest
+cd transform && uv run dbt build --profiles-dir .
+```
+
+## Deployment
+
+The app is hosted on [Streamlit Community Cloud](https://share.streamlit.io) (free, no card). Merging to `main` redeploys it automatically, and a weekly pipeline refreshes the data via a GitHub Release that the app downloads at runtime. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for how it works, how to roll back and the (zero) cost.
 
 ## Contributing
 
