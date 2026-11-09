@@ -11,6 +11,8 @@ A prototype analytics platform for Zambian universities, using the **University 
 | UNZA Institutional Repository (DSpace) | OAI-PMH |
 | UNZA journals on OJS (15 journals) | OAI-PMH and the OJS REST API |
 
+> **Students: start here.** Follow the Day 1 checklist in [`docs/STUDENT_GUIDE.md`](docs/STUDENT_GUIDE.md). Before each Claude chat, download the latest [context pack](https://github.com/DataLab-UNZA/ihub-data-analytics-platform/releases/download/context-pack/ihub-context-pack.zip), upload it, and use a prompt from [`docs/STUDENT_PROMPTS.md`](docs/STUDENT_PROMPTS.md).
+
 Google Scholar is out of scope because it has no official API. Later iterations will add other university systems (student information, LMS, HR/payroll, staff performance, promotions), so every source is a self-contained connector.
 
 ## Architecture
@@ -101,10 +103,11 @@ uv run python -m ihub.ingest
 
 ## Deployment
 
-The app is live at **https://ihub-app-197899767407.africa-south1.run.app** (Google Cloud Run, Johannesburg). Every merge to `main` deploys automatically once a member of the `ihub-deployers` team approves it in GitHub Actions, and a weekly pipeline refreshes the data. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for how it works, how to roll back and how to check costs.
+The app is live at **https://ihub-app-197899767407.africa-south1.run.app** (Google Cloud Run, Johannesburg). Every merge to `main` that changes the app deploys automatically once a member of the `ihub-deployers` team approves it in GitHub Actions, and a weekly pipeline refreshes the data. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for how it works, how to roll back and how to check costs.
 
 ## Contributing
 
-- `main` is protected: all changes go through a pull request, and CI (lint + tests) must pass.
-- Work in mob sessions follows the rules in [`CLAUDE.md`](CLAUDE.md), including the prompt log and commit-message format.
+- `main` is protected: all changes go through a pull request, and CI (lint + tests) must pass. A review by a teammate is expected but not enforced.
+- Students: the workflow, the context pack and how credit works are in [`docs/STUDENT_GUIDE.md`](docs/STUDENT_GUIDE.md). Tasks are [GitHub issues](https://github.com/DataLab-UNZA/ihub-data-analytics-platform/issues).
+- Work in mob sessions follows the rules in [`CLAUDE.md`](CLAUDE.md), including the prompt log and commit-message format. The team is listed in [`CONTRIBUTORS.md`](CONTRIBUTORS.md).
 - Never commit secrets. Put API keys in `.env` locally and in the GitHub `pipeline` environment for Actions. Every variable name is listed in `.env.example`.

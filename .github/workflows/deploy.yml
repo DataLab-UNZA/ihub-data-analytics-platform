@@ -1,7 +1,7 @@
 name: Deploy
 
 # Builds the web app image with the newest data release and deploys it to
-# Google Cloud Run. Runs on every merge to main (after approval in the
+# Google Cloud Run. Runs on every merge to main that changes the app (after approval in the
 # "production" environment), by hand (optionally for an older commit, to roll
 # back) and from the Pipeline workflow after a data refresh.
 # Authenticates with Workload Identity Federation: no keys are stored anywhere.
@@ -10,6 +10,16 @@ name: Deploy
 on:
   push:
     branches: [main]
+    # Changes that cannot affect the running app do not ask for a production deploy.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "tests/**"
+      - "scripts/make_context_pack.py"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/pull_request_template.md"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/context-pack.yml"
   workflow_dispatch:
     inputs:
       ref:

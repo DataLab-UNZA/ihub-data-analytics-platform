@@ -39,4 +39,4 @@ OJS (15) ─┘  database (raw schema)    (dbt staging)       (dbt intermediate)
 
 These values are still to be verified (see `config/sources.yml`): UNZA's ROR ID and OpenAlex institution ID, the IRIM OAI-PMH endpoint and metadata formats, the OJS base URL and journal paths, ORCID client credentials, the OpenAlex contact email and API key, and the source for the schools-to-departments seed.
 
-Demonstration prompts for stage 1 are in [`DEMO_PROMPTS.md`](DEMO_PROMPTS.md).
+Tasks for each stage are [GitHub issues](https://github.com/DataLab-UNZA/ihub-data-analytics-platform/issues), labelled by layer. Demonstration prompts for stage 1 are in [`DEMO_PROMPTS.md`](DEMO_PROMPTS.md).

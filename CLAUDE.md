@@ -53,7 +53,8 @@ sources -> connectors (Python) -> raw -> staging -> intermediate -> marts -> Str
 - **No secrets in the repository, ever.** API keys go in `.env` locally and in the GitHub `pipeline` environment (secrets restricted to `main`) for Actions. Every variable name must be listed in `.env.example`. No data files or `.duckdb` files are committed.
 - Architecture changes get a short ADR in `docs/decisions/` (`ADR-NNN-title.md`).
 - Research metadata may be public. Future sensitive sources (students, HR, payroll) must never be published as release assets or printed in public workflow logs. They need private storage and access control, recorded in an ADR before any work starts.
-- `main` is protected: changes go through pull requests only, and CI must pass.
+- `main` is protected: changes go through pull requests only, and CI must pass. No approving review is enforced, but every pull request should be reviewed by a teammate before it is merged (Lighton may merge his own).
+- Students work on their own with Claude's free plan through the context pack (`scripts/make_context_pack.py`, published on the `context-pack` release by `.github/workflows/context-pack.yml`). See `docs/STUDENT_GUIDE.md` and `docs/STUDENT_PROMPTS.md`.
 
 ## Mob-session and commit rules
 
@@ -61,6 +62,7 @@ sources -> connectors (Python) -> raw -> staging -> intermediate -> marts -> Str
   - Tab "Prompt Log": A Session, B Date, C Time, D Navigator, E Reviewer, F Prompt (exact wording), G Outcome (Worked / Revised / Undone), H Commit hash, I Notes, J Co-authored-by trailer (auto), K Reviewed-by trailer (auto). Row 2 is an example; real entries start at row 3.
   - Tab "Team": A Full name, B GitHub username, C Commit email (GitHub no-reply), D Role.
 - When I say "run row N", read the prompt in column F of that row and carry it out exactly as written.
+- These commit rules apply to mob sessions and to sessions on Lighton's account. **When a student works on their own**, the student is the commit author (their name and email from the Team tab, set with `git config`); add a `Co-authored-by` line, copied from the Team tab, only for a teammate who paired with them.
 - When I ask you to commit:
   1. Read the Prompt Log rows that have an Outcome of Worked or Revised and an empty Commit hash. These are the prompts covered by this commit.
   2. Write the commit message: a short imperative summary line; a body explaining what changed and why; a line "Prompt log: Session <A>, row(s) <numbers>"; then, at the end, the exact text from column J of each of those rows (one line per distinct Navigator) and from column K (one line per distinct Reviewer). Copy the trailers exactly; never type names or emails yourself.

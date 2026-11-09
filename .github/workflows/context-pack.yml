@@ -1,0 +1,52 @@
+name: Context pack
+
+# Rebuilds the context pack for Claude chats after every merge to main and
+# publishes it on the "context-pack" release, which always has the same links:
+#   .../releases/download/context-pack/ihub-context-pack.zip
+#   .../releases/download/context-pack/context-pack.md
+# Nothing is committed to main, so this never starts a production deploy.
+# See docs/STUDENT_GUIDE.md.
+
+on:
+  push:
+    branches: [main]
+  issues:
+    types: [opened, closed, reopened, edited, labeled, unlabeled]
+  workflow_dispatch:
+
+concurrency:
+  group: context-pack
+  cancel-in-progress: true
+
+permissions:
+  contents: write # to update the release
+  issues: read
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the pack
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" > issues.json
+          python3 scripts/make_context_pack.py --issues issues.json \
+            --out dist/context-pack.md --zip dist/ihub-context-pack.zip
+
+      - name: Publish on the context-pack release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="Context pack for Claude chats, built from commit ${GITHUB_SHA::7} on $(date -u +'%B %-d, %Y at %H:%M') UTC. Download ihub-context-pack.zip and upload it to a new chat (or upload context-pack.md if the zip is refused). See docs/STUDENT_GUIDE.md."
+          if gh release view context-pack >/dev/null 2>&1; then
+            gh release upload context-pack dist/ihub-context-pack.zip dist/context-pack.md --clobber
+            gh release edit context-pack --notes "$notes"
+          else
+            gh release create context-pack dist/ihub-context-pack.zip dist/context-pack.md \
+              --title "Context pack (always the latest)" --notes "$notes" --latest=false
+          fi
+          echo "$notes" >> "$GITHUB_STEP_SUMMARY"
