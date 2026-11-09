@@ -63,6 +63,8 @@ transform/                dbt project: staging, intermediate, marts, seeds
 tests/                    pytest tests
 docs/decisions/           architecture decision records (ADRs)
 data/                     local data and DuckDB file (git-ignored)
+
+- [`docs/GLOSSARY.md`](docs/GLOSSARY.md) — definitions of project terminology.
 ```
 
 ## Setup
