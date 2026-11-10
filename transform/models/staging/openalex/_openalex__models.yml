@@ -2,7 +2,9 @@ version: 2
 
 models:
   - name: stg_openalex__works
-    description: One row per OpenAlex work, renamed, typed and standardised.
+    description: >
+      One row per OpenAlex work, renamed, typed and standardised. If the raw table holds the
+      same work more than once, the most recently fetched delivery is kept.
     columns:
       - name: openalex_id
         description: OpenAlex work ID without the URL prefix, e.g. W2548000951.
@@ -37,6 +39,14 @@ models:
           - not_null
       - name: n_authors
         description: Number of authorships listed (OpenAlex lists at most 100).
+        data_tests:
+          - not_null
+      - name: is_xpac
+        description: >
+          True for works OpenAlex derives from repository and DataCite metadata ("xpac"
+          works). OpenAlex hides them from its default results; they are pulled so the
+          total matches the institution's published works count, and kept flagged so
+          they can be filtered later.
         data_tests:
           - not_null
       - name: fetched_at

@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -61,8 +62,21 @@ def make_work(
 def build_warehouse(
     db: Path, works: list[dict[str, Any]], select: str = "+path:models/marts/research"
 ) -> Path:
-    """Load ``works`` into raw_openalex and run ``dbt build`` for ``select``. Return ``db``."""
-    records = [RawRecord(source="openalex", record_id=w["id"], payload=w) for w in works]
+    """Load ``works`` into raw_openalex and run ``dbt build`` for ``select``. Return ``db``.
+
+    Works are loaded in order, each fetched one second after the one before, so when the same
+    work appears twice the later one is the more recent delivery.
+    """
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    records = [
+        RawRecord(
+            source="openalex",
+            record_id=w["id"],
+            payload=w,
+            fetched_at=start + timedelta(seconds=i),
+        )
+        for i, w in enumerate(works)
+    ]
     write_raw(db, "raw_openalex", records)
 
     previous = os.environ.get("IHUB_DUCKDB_PATH")

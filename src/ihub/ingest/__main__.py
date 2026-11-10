@@ -8,6 +8,7 @@ Run it from the repository root.
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import UTC, datetime
 from pathlib import Path
@@ -53,8 +54,16 @@ def record_run(db_path: Path, commit_sha: str | None, connectors_run: int) -> No
         )
 
 
+def configure_logging() -> None:
+    """Show connector progress, but keep request URLs out of the log (they can hold API keys)."""
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+
 def main() -> None:
     """Run all enabled connectors and record the pipeline run."""
+    configure_logging()
     settings = get_settings()
     sources = load_source_config()
     connectors_run = 0
