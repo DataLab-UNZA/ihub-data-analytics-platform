@@ -6,7 +6,9 @@ sources:
   openalex:
     enabled: true
     base_url: https://api.openalex.org
-    institution_ror: null        # verify: UNZA's ROR ID
+    institution_id: I33278361    # verified against the OpenAlex API (see issue #9 evidence)
+    institution_ror: https://ror.org/03gh19d69  # verified against the OpenAlex API
+    year_from: 2015              # pull works published from 1 January of this year
   orcid:
     enabled: true
     base_url: https://pub.orcid.org/v3.0
