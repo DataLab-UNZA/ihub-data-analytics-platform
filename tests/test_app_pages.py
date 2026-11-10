@@ -77,3 +77,40 @@ def test_change_against_the_previous_period_only_when_the_data_covers_it(
     publications = next(m for m in app.metric if m.label == "Publications")
     assert publications.value == "2"
     assert publications.delta == "-33.3%"  # 2 now against 3 in 2019 to 2020
+
+
+def open_publications(monkeypatch: pytest.MonkeyPatch, db: Path) -> AppTest:
+    app = run_app(monkeypatch, db)
+    app.switch_page("pages/publications.py").run()
+    return app
+
+
+def test_publications_page_lists_every_publication(
+    monkeypatch: pytest.MonkeyPatch, mart_db: Path
+) -> None:
+    app = open_publications(monkeypatch, mart_db)
+    assert not app.exception
+    assert "Showing 1 to 5 of 5 publications" in text_of(app.caption)
+    assert len(app.dataframe[0].value) == 5
+
+
+def test_publications_filters_and_global_year_filter_combine(
+    monkeypatch: pytest.MonkeyPatch, mart_db: Path
+) -> None:
+    app = open_publications(monkeypatch, mart_db)
+    app.multiselect[0].set_value(["Article"]).run()  # type
+    assert "of 4 publications" in text_of(app.caption)
+    app.session_state["year_range"] = (2020, 2022)  # what the global year filter stores
+    app.run()
+    assert "of 3 publications" in text_of(app.caption)  # global year filter still applies
+
+
+def test_publications_search_and_empty_result(
+    monkeypatch: pytest.MonkeyPatch, mart_db: Path
+) -> None:
+    app = open_publications(monkeypatch, mart_db)
+    app.text_input[0].set_value("malaria").run()
+    assert "of 1 publications" in text_of(app.caption)
+    app.text_input[0].set_value("no such title").run()
+    assert not app.exception
+    assert "No publications match" in text_of(app.info)
