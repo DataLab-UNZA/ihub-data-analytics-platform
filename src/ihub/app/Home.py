@@ -30,3 +30,12 @@ st.info(
     "Pages (Overview, Explorer, Departments, Authors, Journals, Coverage) "
     "will appear here as the team builds them."
 )
+
+st.divider()
+st.caption(
+    "[GitHub repository](https://github.com/DataLab-UNZA/ihub-data-analytics-platform) · "
+    "[Roadmap](https://github.com/DataLab-UNZA/ihub-data-analytics-platform/blob/main/docs/ROADMAP.md)"
+    "  \n"
+    "Research metadata from OpenAlex, ORCID, the UNZA Institutional Repository "
+    "and UNZA journals (being added)."
+)
