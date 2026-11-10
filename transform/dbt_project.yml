@@ -5,7 +5,13 @@ profile: ihub
 
 model-paths: ["models"]
 seed-paths: ["seeds"]
+macro-paths: ["macros"]
 test-paths: ["tests"]
+
+vars:
+  # When several sources describe the same publication, the first source in this list
+  # supplies the title, type, venue and other descriptive fields. Add new sources here.
+  source_priority: ["openalex"]
 
 models:
   ihub:
