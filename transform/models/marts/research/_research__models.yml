@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: dim_year
+    description: One row per calendar year between the earliest and latest publication year.
+    columns:
+      - name: year_key
+        data_tests: [unique, not_null]
+      - name: year
+        data_tests: [not_null]
+
+  - name: dim_publication_type
+    description: One row per publication type.
+    columns:
+      - name: type_key
+        data_tests: [unique, not_null]
+      - name: type_code
+        data_tests: [unique, not_null]
+      - name: type_label
+        data_tests: [not_null]
+
+  - name: dim_venue
+    description: One row per venue, plus an "Unknown venue" row.
+    columns:
+      - name: venue_key
+        data_tests: [unique, not_null]
+      - name: venue_name
+        data_tests: [not_null]
+
+  - name: dim_publication
+    description: One row per de-duplicated publication.
+    columns:
+      - name: publication_key
+        data_tests: [unique, not_null]
+      - name: title
+        data_tests: [not_null]
+
+  - name: fact_publication
+    description: >
+      One row per de-duplicated publication. Keys: publication, venue, year, type.
+      Measures: cited_by_count, n_authors, is_oa, oa_status and the in_<source> flags.
+    columns:
+      - name: publication_key
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_publication')
+                field: publication_key
+      - name: venue_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_venue')
+                field: venue_key
+      - name: year_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_year')
+                field: year_key
+      - name: type_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_publication_type')
+                field: type_key
+      - name: cited_by_count
+        data_tests: [not_null]
+      - name: n_authors
+        data_tests: [not_null]
+      - name: is_oa
+        data_tests: [not_null]
+      - name: oa_status
+        data_tests: [not_null]
+      - name: in_openalex
+        data_tests: [not_null]
+      - name: in_repository
+        data_tests: [not_null]
+      - name: in_ojs
+        data_tests: [not_null]
