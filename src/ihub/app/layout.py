@@ -37,6 +37,7 @@ class PageSpec:
 #: The pages in the sidebar, in order. Add new pages here.
 PAGES: tuple[PageSpec, ...] = (
     PageSpec("pages/overview.py", "Overview", ":material/dashboard:", default=True),
+    PageSpec("pages/publications.py", "Publications", ":material/article:"),
 )
 
 
