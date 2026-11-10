@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: int_publications__source_records
+    description: >
+      Every publication record from every source in one common shape, with the
+      publication_key it resolves to. The link from a publication back to each source record.
+    columns:
+      - name: publication_key
+        description: Surrogate key of the de-duplicated publication this record belongs to.
+        data_tests:
+          - not_null
+      - name: match_rule
+        description: How the record was matched (doi, title_year_to_doi, title_year or single_record).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [doi, title_year_to_doi, title_year, single_record]
+      - name: source_system
+        description: Source the record came from, e.g. openalex.
+        data_tests:
+          - not_null
+      - name: source_record_id
+        description: The record's identifier in its own source.
+        data_tests:
+          - not_null
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [source_system, source_record_id]
+
+  - name: int_publications__deduplicated
+    description: One row per de-duplicated publication.
+    columns:
+      - name: publication_key
+        data_tests:
+          - unique
+          - not_null
+      - name: year
+        data_tests:
+          - not_null
+      - name: n_source_records
+        data_tests:
+          - not_null
