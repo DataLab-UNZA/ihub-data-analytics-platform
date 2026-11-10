@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+# Imported explicitly on purpose: Plotly looks pandas up in sys.modules without waiting for
+# the import lock, so when several sessions load a cold server at once one of them can see
+# pandas half-imported and crash with a circular-import error. An explicit import waits.
+import pandas  # noqa: F401
 import plotly.graph_objects as go
 
 from ihub.mart.research import YearCount, YearOpenAccess
