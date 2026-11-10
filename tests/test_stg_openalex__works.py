@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.dbt_helpers import build_warehouse, query, sample_works
+from tests.dbt_helpers import build_warehouse, make_work, query, sample_works
 
 
 @pytest.fixture(scope="module")
@@ -33,3 +33,36 @@ def test_columns_are_cleaned_and_typed(built_db: Path) -> None:
     assert work["oa_status"] == "green"
     assert work["cited_by_count"] == 13519
     assert work["n_authors"] == 21
+
+
+def test_a_work_delivered_twice_becomes_one_row_and_the_latest_delivery_wins(
+    tmp_path: Path,
+) -> None:
+    older = make_work("W1", title="Old title", cited_by_count=1)
+    newer = make_work("W1", title="New title", cited_by_count=9)
+    other = make_work("W2", title="Another work")
+    db = build_warehouse(
+        tmp_path / "dup.duckdb", [older, other, newer], select="stg_openalex__works"
+    )
+
+    rows = query(db, "SELECT openalex_id, title, cited_by_count FROM staging.stg_openalex__works")
+    assert sorted((r["openalex_id"], r["title"], r["cited_by_count"]) for r in rows) == [
+        ("W1", "New title", 9),
+        ("W2", "Another work", 0),
+    ]
+
+
+def test_identical_deliveries_collapse_to_one_row(tmp_path: Path) -> None:
+    work = make_work("W1")
+    db = build_warehouse(tmp_path / "same.duckdb", [work, work, work], select="stg_openalex__works")
+    assert query(db, "SELECT count(*) AS n FROM staging.stg_openalex__works") == [{"n": 1}]
+
+
+def test_is_xpac_flag_is_read_and_defaults_to_false(tmp_path: Path) -> None:
+    xpac = make_work("W1")
+    xpac["is_xpac"] = True
+    plain = make_work("W2")
+    plain.pop("is_xpac", None)
+    db = build_warehouse(tmp_path / "xpac.duckdb", [xpac, plain], select="stg_openalex__works")
+    rows = query(db, "SELECT openalex_id, is_xpac FROM staging.stg_openalex__works")
+    assert {r["openalex_id"]: r["is_xpac"] for r in rows} == {"W1": True, "W2": False}

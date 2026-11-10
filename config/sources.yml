@@ -8,7 +8,10 @@ sources:
     base_url: https://api.openalex.org
     institution_id: I33278361    # verified against the OpenAlex API (see issue #9 evidence)
     institution_ror: https://ror.org/03gh19d69  # verified against the OpenAlex API
-    year_from: 2015              # pull works published from 1 January of this year
+    # year_from: 2015            # optional: only pull works published from 1 January of this year.
+    #                            # Left unset so that every work UNZA is affiliated with is pulled.
+    include_xpac: true           # also pull OpenAlex "xpac" works (repository and DataCite records);
+    #                            # without this OpenAlex hides ~1,700 UNZA works from its own count
   orcid:
     enabled: true
     base_url: https://pub.orcid.org/v3.0
