@@ -18,6 +18,10 @@ vars:
   unza_org_names: ["university of zambia", "unza"]
   unza_org_identifiers: ["108234", "https://ror.org/03gh19d69", "03gh19d69"]
 
+seeds:
+  ihub:
+    +schema: seeds
+
 models:
   ihub:
     staging:
