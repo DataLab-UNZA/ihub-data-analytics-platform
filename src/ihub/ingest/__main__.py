@@ -18,6 +18,7 @@ import duckdb
 import yaml
 
 from ihub.connectors.base import Connector
+from ihub.connectors.dspace_oai import DSpaceOaiConnector
 from ihub.connectors.openalex import OpenAlexConnector
 from ihub.connectors.orcid import OrcidConnector
 from ihub.ingest.raw import write_raw
@@ -25,8 +26,9 @@ from ihub.settings import get_settings
 
 CONFIG_PATH = Path("config/sources.yml")
 
-# Connector classes are added here as they are built (DSpace and OJS next).
-CONNECTORS: list[type[Connector]] = [OpenAlexConnector, OrcidConnector]
+# Every connector, in the order they run. Each one reads its own block of config/sources.yml
+# (keyed by its source_name) and is skipped there unless enabled. OJS is next.
+CONNECTORS: list[type[Connector]] = [OpenAlexConnector, DSpaceOaiConnector, OrcidConnector]
 
 
 def load_source_config(path: Path = CONFIG_PATH) -> dict[str, dict[str, Any]]:

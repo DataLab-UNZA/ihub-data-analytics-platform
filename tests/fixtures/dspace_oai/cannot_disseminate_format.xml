@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-made fixture: the standard OAI-PMH reply for an unsupported metadataPrefix. -->
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+  <responseDate>2026-11-11T08:00:04Z</responseDate>
+  <request verb="ListRecords" metadataPrefix="mods">https://rims.unza.ac.zm/server/oai/request</request>
+  <error code="cannotDisseminateFormat">Format mods is not supported.</error>
+</OAI-PMH>
