@@ -21,5 +21,20 @@ sources:
     metadata_prefix: oai_dc
   ojs:
     enabled: true
-    base_url: null               # verify: UNZA OJS base URL
-    journals: []                 # verify: the 15 journal paths
+    base_url: https://journals.unza.zm   # journal pages at /index.php/<path>
+    journals:                            # 15 home pages confirmed; OAI-PMH 404 for JPRM and ZJE (see PR)
+      - JRNMHS
+      - JAE
+      - JABS
+      - JLSS
+      - JLT
+      - MJLSSE
+      - JONAS
+      - JPRM
+      - ZIJE
+      - ZJE
+      - ZJEMAL
+      - ZJH
+      - ZJRCI
+      - ZLJ
+      - ZJOCI
