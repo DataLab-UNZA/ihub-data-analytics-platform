@@ -1,0 +1,106 @@
+version: 2
+
+models:
+  - name: stg_orcid__researchers
+    description: One row per harvested UNZA-affiliated ORCID iD.
+    columns:
+      - name: orcid_id
+        description: The ORCID iD, e.g. 0000-0003-3582-9866.
+        data_tests: [unique, not_null]
+      - name: orcid_url
+        description: The iD as a link, e.g. https://orcid.org/0000-0003-3582-9866.
+      - name: n_works
+        description: Number of work groups (distinct works) on the public record.
+        data_tests: [not_null]
+      - name: n_employment_groups
+        description: Number of employment groups on the public record.
+        data_tests: [not_null]
+      - name: fetched_at
+        data_tests: [not_null]
+
+  - name: stg_orcid__works
+    description: >
+      One row per work (ORCID work group) on a UNZA researcher's ORCID record, described by
+      the group's preferred work summary.
+    columns:
+      - name: orcid_work_id
+        description: "<ORCID iD>:<put-code> of the preferred summary."
+        data_tests: [unique, not_null]
+      - name: orcid_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orcid__researchers')
+                field: orcid_id
+      - name: put_code
+        description: ORCID's identifier for the work summary within the record.
+        data_tests: [not_null]
+      - name: title
+      - name: subtitle
+      - name: year
+        description: Publication year, when the record gives one.
+      - name: type
+        description: The ORCID work type mapped to the shared vocabulary.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  [article, review, book, book-chapter, dissertation, preprint, dataset,
+                   report, editorial, letter, other]
+      - name: source_type
+        description: The ORCID work type, e.g. journal-article.
+      - name: doi
+        description: The work's own DOI (relationship "self"), normalised.
+      - name: journal_title
+      - name: work_url
+      - name: added_by
+        description: Who added the preferred summary to the record, e.g. Crossref.
+      - name: visibility
+      - name: fetched_at
+        data_tests: [not_null]
+
+  - name: stg_orcid__employments
+    description: One row per employment on a UNZA researcher's ORCID record.
+    columns:
+      - name: orcid_employment_id
+        description: "<ORCID iD>:<put-code>."
+        data_tests: [unique, not_null]
+      - name: orcid_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orcid__researchers')
+                field: orcid_id
+      - name: put_code
+        data_tests: [not_null]
+      - name: organisation_name
+      - name: department_name
+        description: The department as the researcher wrote it.
+      - name: department_name_key
+        description: >
+          department_name as matched against the department_aliases seed
+          (department_name_key macro), e.g. "library and information science".
+      - name: role_title
+      - name: start_year
+      - name: start_month
+      - name: end_year
+      - name: end_month
+      - name: is_current
+        description: True when the employment has no end date.
+        data_tests: [not_null]
+      - name: city
+      - name: country_code
+        description: ISO 3166 country code, e.g. ZM.
+      - name: organisation_identifier
+        description: The organisation's Ringgold, ROR, GRID or other identifier.
+      - name: organisation_identifier_source
+        description: Which register organisation_identifier comes from, e.g. RINGGOLD or ROR.
+      - name: is_unza
+        description: >
+          True when the organisation is UNZA (see the unza_org_identifiers and unza_org_names
+          variables in dbt_project.yml).
+        data_tests: [not_null]
+      - name: fetched_at
+        data_tests: [not_null]

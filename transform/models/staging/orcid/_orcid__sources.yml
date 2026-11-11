@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: raw_orcid
+    description: >
+      UNZA-affiliated ORCID records (found by searching on UNZA's ROR ID), with each iD's works
+      and employments summaries from the ORCID public API, exactly as the orcid connector
+      fetched them.
+    schema: raw_orcid
+    tables:
+      - name: records
+        description: One row per delivered ORCID iD.
+        columns:
+          - name: record_id
+            description: The ORCID iD, e.g. 0000-0003-3582-9866.
+          - name: source
+            description: Always "orcid".
+          - name: fetched_at
+            description: When the connector fetched the record (UTC).
+          - name: payload
+            description: >
+              JSON with `orcid`, `works` (the /works summary: groups of work summaries) and
+              `employments` (the /employments summary: affiliation groups).

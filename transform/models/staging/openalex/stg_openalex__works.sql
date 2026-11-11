@@ -2,23 +2,12 @@
 --
 -- The raw table keeps every delivery exactly as fetched, and OpenAlex can deliver the
 -- same work on two pages of one pull. This model keeps one row per work: the most
--- recently fetched delivery (ties broken on the payload so the choice never changes
--- between builds).
+-- recently fetched delivery (see the latest_delivery macro). DOIs are cleaned with the
+-- shared normalise_doi macro, like every other source.
 
-with source as (
+with latest_delivery as (
 
-    select * from {{ source('raw_openalex', 'records') }}
-
-),
-
-latest_delivery as (
-
-    select *
-    from source
-    qualify row_number() over (
-        partition by record_id
-        order by fetched_at desc, md5(cast(payload as varchar))
-    ) = 1
+    {{ latest_delivery(source('raw_openalex', 'records')) }}
 
 ),
 
@@ -33,12 +22,7 @@ renamed as (
             payload ->> '$.primary_location.source.id', 'https://openalex.org/', ''
         ) as venue_id,
         payload ->> '$.primary_location.source.display_name' as venue_name,
-        nullif(
-            regexp_replace(
-                lower(trim(payload ->> '$.doi')), '^https?://(dx\.)?doi\.org/', ''
-            ),
-            ''
-        ) as doi,
+        {{ normalise_doi("payload ->> '$.doi'") }} as doi,
         coalesce(cast(payload ->> '$.open_access.is_oa' as boolean), false) as is_oa,
         payload ->> '$.open_access.oa_status' as oa_status,
         coalesce(cast(payload ->> '$.cited_by_count' as integer), 0) as cited_by_count,

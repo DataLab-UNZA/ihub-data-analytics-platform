@@ -1,0 +1,26 @@
+version: 2
+
+sources:
+  - name: raw_ojs
+    description: >
+      Articles of the 15 UNZA journals on journals.unza.zm (Open Journal Systems), exactly as
+      the ojs connector fetched them: over OAI-PMH, or through the OJS REST API for a journal
+      without OAI-PMH.
+    schema: raw_ojs
+    tables:
+      - name: records
+        description: One row per delivered article.
+        columns:
+          - name: record_id
+            description: >
+              The article's OAI identifier (e.g. oai:ojs2.journals.unza.zm:article/321), or
+              ojs:<journal>:article/<id> for an article read through the REST API.
+          - name: source
+            description: Always "ojs".
+          - name: fetched_at
+            description: When the connector fetched the record (UTC).
+          - name: payload
+            description: >
+              The article as JSON, with `journal` (the journal path) and `harvest_method`
+              (oai_pmh or rest_api). OAI-PMH records hold the OAI header and Dublin Core
+              metadata; REST API records hold the `issue` and the `article`.

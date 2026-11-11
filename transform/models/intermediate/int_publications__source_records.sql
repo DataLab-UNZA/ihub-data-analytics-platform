@@ -48,10 +48,7 @@ normalised as (
     select
         *,
         -- lower case, accents removed, anything but letters and digits becomes one space
-        nullif(
-            trim(regexp_replace(strip_accents(lower(title)), '[^a-z0-9]+', ' ', 'g')),
-            ''
-        ) as title_normalised
+        {{ normalise_title('title') }} as title_normalised
     from unioned
 
 ),
