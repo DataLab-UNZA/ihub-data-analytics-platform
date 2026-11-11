@@ -1,0 +1,24 @@
+version: 2
+
+sources:
+  - name: raw_dspace_oai
+    description: >
+      UNZA's Integrated Research Information Management System (IRIMS, DSpace-CRIS),
+      harvested over OAI-PMH by the dspace_oai connector, exactly as fetched.
+    schema: raw_dspace_oai
+    tables:
+      - name: records
+        description: >
+          One row per delivered record. `payload.record_type` tells items (`item`) from
+          communities and collections (`set`).
+        columns:
+          - name: record_id
+            description: The OAI identifier of an item, or `set:<setSpec>` for a set.
+          - name: source
+            description: Always "dspace_oai".
+          - name: fetched_at
+            description: When the connector fetched the record (UTC).
+          - name: payload
+            description: >
+              The record as JSON: the OAI header (identifier, datestamp, set_specs, deleted),
+              the Dublin Core metadata as lists of strings, and the record's XML.

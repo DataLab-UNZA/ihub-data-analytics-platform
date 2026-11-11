@@ -1,0 +1,109 @@
+version: 2
+
+models:
+  - name: stg_dspace_oai__items
+    description: >
+      One row per IRIMS (DSpace) item, renamed, typed and standardised. Deleted items are
+      kept and flagged. If an item was delivered more than once, the newest delivery is kept.
+    columns:
+      - name: dspace_item_id
+        description: The item's OAI identifier, e.g. oai:rims.unza.ac.zm:123456789/4153.
+        data_tests: [unique, not_null]
+      - name: handle
+        description: The item's handle, e.g. 123456789/4153.
+      - name: item_url
+        description: The item's web address in the repository (the dc:identifier handle link).
+      - name: title
+        description: The first dc:title, with white space tidied. Empty for deleted items.
+      - name: year
+        description: >
+          Publication year: the earliest year among dc:date values without a time, else the
+          earliest dc:date year.
+      - name: type
+        description: dc:type mapped to the shared vocabulary (e.g. dissertation, article).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: &publication_types
+                  [article, review, book, book-chapter, dissertation, preprint, dataset,
+                   report, editorial, letter, other]
+      - name: source_type
+        description: The first dc:type exactly as the repository gives it.
+      - name: doi
+        description: The first DOI among the dc:identifier values, normalised (normalise_doi).
+      - name: author_names
+        description: Every dc:creator, in order, as the repository gives them.
+      - name: n_authors
+        data_tests: [not_null]
+      - name: first_author_family_name
+        description: Family name of the first dc:creator.
+      - name: set_specs
+        description: The communities and collections the item belongs to.
+      - name: is_deleted
+        description: True when the repository reports the item as deleted.
+        data_tests: [not_null]
+      - name: datestamp
+        description: When the repository last changed the record (UTC).
+      - name: fetched_at
+        data_tests: [not_null]
+
+  - name: stg_dspace_oai__sets
+    description: One row per IRIMS community or collection.
+    columns:
+      - name: set_spec
+        description: The set's OAI setSpec, e.g. com_123456789_7 or col_123456789_290.
+        data_tests: [unique, not_null]
+      - name: set_kind
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [community, collection, other]
+      - name: set_name
+        description: The community or collection name.
+      - name: set_name_key
+        description: >
+          set_name as matched against the department_aliases seed (department_name_key
+          macro).
+
+  - name: stg_dspace_oai__item_sets
+    description: One row per IRIMS item and community or collection it belongs to.
+    columns:
+      - name: dspace_item_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_dspace_oai__items')
+                field: dspace_item_id
+      - name: set_spec
+        data_tests: [not_null]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [dspace_item_id, set_spec]
+
+  - name: stg_dspace_oai__item_authors
+    description: One row per IRIMS item and author, in the order the repository lists them.
+    columns:
+      - name: dspace_item_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_dspace_oai__items')
+                field: dspace_item_id
+      - name: author_position
+        description: 1 for the first author, 2 for the second, and so on.
+        data_tests: [not_null]
+      - name: author_name
+        description: The dc:creator value, white space tidied.
+        data_tests: [not_null]
+      - name: family_name
+      - name: given_names
+      - name: family_name_normalised
+        description: family_name prepared for matching (normalise_title).
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [dspace_item_id, author_position]

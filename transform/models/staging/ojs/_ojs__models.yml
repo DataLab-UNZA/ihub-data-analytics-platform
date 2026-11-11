@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: stg_ojs__articles
+    description: >
+      One row per article in the UNZA journals on OJS, renamed, typed and standardised, in one
+      shape whichever way it was harvested (OAI-PMH or REST API). Deleted articles are kept and
+      flagged.
+    columns:
+      - name: ojs_article_id
+        description: >
+          The article's OAI identifier, or ojs:<journal>:article/<id> when read through the
+          REST API.
+        data_tests: [unique, not_null]
+      - name: journal_path
+        description: The journal's path on journals.unza.zm, e.g. JABS or zjh.
+        data_tests: [not_null]
+      - name: harvest_method
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [oai_pmh, rest_api]
+      - name: article_number
+        description: OJS's own number for the article (the end of its identifier).
+      - name: title
+      - name: published_date
+        description: The article's publication date.
+      - name: year
+        description: Publication year.
+      - name: type
+        description: dc:type mapped to the shared vocabulary (normally "article").
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  [article, review, book, book-chapter, dissertation, preprint, dataset,
+                   report, editorial, letter, other]
+      - name: source_type
+        description: The journal's own type, e.g. info:eu-repo/semantics/article.
+      - name: doi
+        description: The article's DOI, normalised (normalise_doi).
+      - name: article_url
+        description: The article's page on journals.unza.zm.
+      - name: venue_name
+        description: The journal's name as its citation gives it (OAI-PMH only).
+      - name: issns
+        description: The journal's ISSNs (print and online) as given in dc:source.
+      - name: volume
+      - name: issue
+      - name: pages
+        description: Page range, e.g. 1-18.
+      - name: author_names
+        description: The authors, in order, as the journal gives them ("Family, Given").
+      - name: n_authors
+        data_tests: [not_null]
+      - name: first_author_family_name
+      - name: is_deleted
+        data_tests: [not_null]
+      - name: datestamp
+        description: When OJS last changed the OAI record (UTC).
+      - name: fetched_at
+        data_tests: [not_null]
+
+  - name: stg_ojs__article_authors
+    description: One row per OJS article and author, in the order the journal lists them.
+    columns:
+      - name: ojs_article_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_ojs__articles')
+                field: ojs_article_id
+      - name: author_position
+        data_tests: [not_null]
+      - name: author_name
+        data_tests: [not_null]
+      - name: family_name
+      - name: given_names
+      - name: family_name_normalised
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [ojs_article_id, author_position]

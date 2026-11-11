@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -59,50 +60,67 @@ def make_work(
     return work
 
 
-def build_warehouse(
-    db: Path, works: list[dict[str, Any]], select: str = "+path:models/marts/research"
-) -> Path:
-    """Load ``works`` into raw_openalex and run ``dbt build`` for ``select``. Return ``db``.
+def load_raw(db: Path, source: str, records: Iterable[tuple[str, dict[str, Any]]]) -> Path:
+    """Write ``(record_id, payload)`` pairs to ``raw_<source>.records``, as a connector would.
 
-    Works are loaded in order, each fetched one second after the one before, so when the same
-    work appears twice the later one is the more recent delivery.
+    Records are loaded in order, each fetched one second after the one before, so when the
+    same record appears twice the later one is the more recent delivery.
     """
     start = datetime(2026, 1, 1, tzinfo=UTC)
-    records = [
+    raw = [
         RawRecord(
-            source="openalex",
-            record_id=w["id"],
-            payload=w,
+            source=source,
+            record_id=record_id,
+            payload=payload,
             fetched_at=start + timedelta(seconds=i),
         )
-        for i, w in enumerate(works)
+        for i, (record_id, payload) in enumerate(records)
     ]
-    write_raw(db, "raw_openalex", records)
+    write_raw(db, f"raw_{source}", raw)
+    return db
 
+
+def run_dbt(db: Path, command: str, select: str | None = None) -> None:
+    """Run a dbt command (``build``, ``seed``, ...) on ``db`` and fail the test if it fails."""
+    args = [command]
+    if select:
+        args += ["--select", select]
+    args += [
+        "--project-dir",
+        str(TRANSFORM),
+        "--profiles-dir",
+        str(TRANSFORM),
+        "--target-path",
+        str(db.parent / "target"),
+        "--log-path",
+        str(db.parent / "logs"),
+    ]
     previous = os.environ.get("IHUB_DUCKDB_PATH")
     os.environ["IHUB_DUCKDB_PATH"] = str(db)
     try:
-        result = dbtRunner().invoke(
-            [
-                "build",
-                "--select",
-                select,
-                "--project-dir",
-                str(TRANSFORM),
-                "--profiles-dir",
-                str(TRANSFORM),
-                "--target-path",
-                str(db.parent / "target"),
-                "--log-path",
-                str(db.parent / "logs"),
-            ]
-        )
+        result = dbtRunner().invoke(args)
     finally:
         if previous is None:
             os.environ.pop("IHUB_DUCKDB_PATH", None)
         else:
             os.environ["IHUB_DUCKDB_PATH"] = previous
-    assert result.success, result.exception
+    assert result.success, result.exception or _failures(result)
+
+
+def _failures(result: Any) -> str:
+    """The names and messages of the nodes that failed, for a readable assertion."""
+    nodes = getattr(result, "result", None) or []
+    return "; ".join(
+        f"{r.node.name}: {r.message}" for r in nodes if str(r.status) in ("error", "fail")
+    )
+
+
+def build_warehouse(
+    db: Path, works: list[dict[str, Any]], select: str = "+path:models/marts/research"
+) -> Path:
+    """Load OpenAlex ``works`` into raw_openalex and run ``dbt build`` for ``select``."""
+    load_raw(db, "openalex", [(w["id"], w) for w in works])
+    run_dbt(db, "build", select)
     return db
 
 

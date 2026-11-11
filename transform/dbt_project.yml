@@ -12,12 +12,20 @@ vars:
   # When several sources describe the same publication, the first source in this list
   # supplies the title, type, venue and other descriptive fields. Add new sources here.
   source_priority: ["openalex"]
+  # How UNZA appears in organisation records (ORCID employments, for now). Names are
+  # compared after normalise_org_name; identifiers exactly. Ringgold 108234 and ROR
+  # 03gh19d69 are UNZA's (the ROR ID is verified in config/sources.yml).
+  unza_org_names: ["university of zambia", "unza"]
+  unza_org_identifiers: ["108234", "https://ror.org/03gh19d69", "03gh19d69"]
 
 models:
   ihub:
     staging:
       +schema: staging
-      +materialized: view
+      # Tables, not views: every source's raw payload is JSON (IRIMS records include their
+      # XML), so a view would parse it again for every test and every downstream model.
+      # On the real data that ran out of memory; as tables it is parsed once per build.
+      +materialized: table
     intermediate:
       +schema: intermediate
       +materialized: table
