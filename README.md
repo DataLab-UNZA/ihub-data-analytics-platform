@@ -99,9 +99,37 @@ uv run pytest
 # Web app (opens at http://localhost:8501)
 uv run streamlit run src/ihub/app/Home.py
 
-# Pipeline (no connectors yet: creates data/ihub.duckdb and records the run)
+# Pipeline: run every enabled connector into data/ihub.duckdb, then build the marts
 uv run python -m ihub.ingest
+cd transform && uv run dbt build --profiles-dir . && cd ..
 ```
+
+### Trying a connector against its live source
+
+`--source` runs one connector (or several, repeating the flag), even if it is disabled in
+`config/sources.yml`, and does not record a pipeline run. Point `IHUB_DUCKDB_PATH` at a
+scratch file so your real `data/ihub.duckdb` is left alone:
+
+```bash
+IHUB_DUCKDB_PATH=data/try.duckdb uv run python -m ihub.ingest --source dspace_oai   # IRIMS, about 30 s
+IHUB_DUCKDB_PATH=data/try.duckdb uv run python -m ihub.ingest --source ojs          # 15 journals, about 15 s
+IHUB_DUCKDB_PATH=data/try.duckdb uv run python -m ihub.ingest --source openalex     # about 15,000 works
+IHUB_DUCKDB_PATH=data/try.duckdb uv run python -m ihub.ingest --source orcid        # needs ORCID_CLIENT_ID/SECRET in .env
+```
+
+Then look at what arrived, for example:
+
+```bash
+uv run python -c "import duckdb; print(duckdb.connect('data/try.duckdb').sql(
+  \"select payload->>'\$.journal' as journal, count(*) from raw_ojs.records group by 1 order by 2 desc\"))"
+```
+
+| Source (`--source`) | Raw table | One row per | Needs |
+|---|---|---|---|
+| `openalex` | `raw_openalex.records` | work | nothing (`OPENALEX_MAILTO` recommended) |
+| `dspace_oai` | `raw_dspace_oai.records` | item, or set (`payload.record_type`) | nothing: public OAI-PMH |
+| `ojs` | `raw_ojs.records` | article (`payload.journal`, `payload.harvest_method`) | nothing for OAI-PMH; `OJS_API_TOKEN` only for a journal without it |
+| `orcid` | `raw_orcid.records` | ORCID iD, with its works and employments | `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET` |
 
 ## Deployment
 
