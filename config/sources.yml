@@ -18,9 +18,16 @@ sources:
     token_url: https://orcid.org/oauth/token
     search_query: 'ror-org-id:"https://ror.org/03gh19d69"'  # UNZA's ROR ID; verified against the live search
   dspace_oai:
+    # UNZA's Integrated Research Information Management System (IRIMS, DSpace-CRIS), confirmed
+    # in issue #12 on November 11, 2026: Identify answers with repositoryName "(IRIMS)
+    # Integrated Research Information Management System", earliest datestamp 2010-08-09.
+    # A full harvest that day gave 8,792 records (65 deleted) and 258 sets (communities and
+    # collections) in under a minute. Public: no login is needed.
     enabled: true
-    oai_endpoint: null           # verify: UNZA repository OAI-PMH endpoint
-    metadata_prefix: oai_dc
+    oai_endpoint: https://rims.unza.ac.zm/server/oai/request
+    metadata_prefix: oai_dc      # also offered: dim, qdc, mods, rioxx, etdms, uketd_dc, marc, ...
+    harvest_sets: true           # community and collection names, for department attribution
+    # sets: []                   # optional: harvest only these setSpecs (default: everything)
   ojs:
     enabled: true
     base_url: https://journals.unza.zm   # journal pages at /index.php/<path>
