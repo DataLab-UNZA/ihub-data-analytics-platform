@@ -1,0 +1,59 @@
+{
+  "last-modified-date": {"value": 1781678631342},
+  "group": [
+    {
+      "last-modified-date": {"value": 1781678631196},
+      "external-ids": {
+        "external-id": [
+          {
+            "external-id-type": "doi",
+            "external-id-value": "10.1007/978-3-032-13654-1_18",
+            "external-id-normalized": {"value": "10.1007/978-3-032-13654-1_18", "transient": true},
+            "external-id-normalized-error": null,
+            "external-id-url": {"value": "https://doi.org/10.1007/978-3-032-13654-1_18"},
+            "external-id-relationship": "self"
+          }
+        ]
+      },
+      "work-summary": [
+        {
+          "put-code": 217903668,
+          "created-date": {"value": 1781678631196},
+          "last-modified-date": {"value": 1781678631196},
+          "source": {
+            "source-orcid": null,
+            "source-client-id": {"uri": "https://orcid.org/client/0000-0001-9884-1913", "path": "0000-0001-9884-1913", "host": "orcid.org"},
+            "source-name": {"value": "Crossref"},
+            "assertion-origin-orcid": null,
+            "assertion-origin-client-id": null,
+            "assertion-origin-name": null
+          },
+          "title": {
+            "title": {"value": "Global South Health Practitioners’ Awareness and Perceptions of Integrating Artificial Intelligence in Radiological Workflows: A Quantitative Nationwide Study in Health Facilities in Zambia"},
+            "subtitle": null,
+            "translated-title": null
+          },
+          "external-ids": {
+            "external-id": [
+              {
+                "external-id-type": "doi",
+                "external-id-value": "10.1007/978-3-032-13654-1_18",
+                "external-id-normalized": {"value": "10.1007/978-3-032-13654-1_18", "transient": true},
+                "external-id-normalized-error": null,
+                "external-id-url": {"value": "https://doi.org/10.1007/978-3-032-13654-1_18"},
+                "external-id-relationship": "self"
+              }
+            ]
+          },
+          "url": {"value": "https://doi.org/10.1007/978-3-032-13654-1_18"},
+          "type": "book-chapter",
+          "publication-date": {"year": {"value": "2026"}, "month": null, "day": null},
+          "journal-title": null,
+          "visibility": "public",
+          "path": "/0000-0003-3582-9866/work/217903668",
+          "display-index": "1"
+        }
+      ]
+    }
+  ]
+}
