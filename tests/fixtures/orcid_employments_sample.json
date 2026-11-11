@@ -1,0 +1,40 @@
+{
+  "last-modified-date": {"value": 1514812111189},
+  "affiliation-group": [
+    {
+      "last-modified-date": {"value": 1514812111189},
+      "external-ids": {"external-id": []},
+      "summaries": [
+        {
+          "employment-summary": {
+            "created-date": {"value": 1514812111189},
+            "last-modified-date": {"value": 1514812111189},
+            "source": {
+              "source-orcid": {"uri": "https://orcid.org/0000-0003-3582-9866", "path": "0000-0003-3582-9866", "host": "orcid.org"},
+              "source-client-id": null,
+              "source-name": {"value": "Lighton Phiri"},
+              "assertion-origin-orcid": null,
+              "assertion-origin-client-id": null,
+              "assertion-origin-name": null
+            },
+            "put-code": 5140148,
+            "department-name": "Department of Library and Information Science",
+            "role-title": "Lecturer and Researcher",
+            "start-date": {"year": {"value": "2017"}, "month": {"value": "12"}, "day": {"value": "01"}},
+            "end-date": null,
+            "organization": {
+              "name": "University of Zambia",
+              "address": {"city": "Lusaka", "region": "Lusaka", "country": "ZM"},
+              "disambiguated-organization": {"disambiguated-organization-identifier": "108234", "disambiguation-source": "RINGGOLD"}
+            },
+            "url": {"value": "http://education.unza.zm"},
+            "external-ids": null,
+            "display-index": "0",
+            "visibility": "public",
+            "path": "/0000-0003-3582-9866/employment/5140148"
+          }
+        }
+      ]
+    }
+  ]
+}
