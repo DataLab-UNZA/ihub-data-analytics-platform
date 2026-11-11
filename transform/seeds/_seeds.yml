@@ -1,0 +1,101 @@
+version: 2
+
+seeds:
+  - name: unza_org_units
+    description: >
+      UNZA's organisational units as one hierarchy: the institution, its schools, and their
+      departments and centres, plus the units that belong to no school (the University
+      Library, the Institute of Distance Education and the research directorates).
+      Source: the school pages of www.unza.zm, read on November 11, 2026 (each row's
+      source_url). Feeds dim_org.
+    config:
+      column_types:
+        org_unit_id: varchar
+        org_unit_name: varchar
+        org_unit_type: varchar
+        parent_org_unit_id: varchar
+        source_url: varchar
+        notes: varchar
+    columns:
+      - name: org_unit_id
+        description: Stable path-like key, e.g. unza/education/library-and-information-science.
+        data_tests: [unique, not_null]
+      - name: org_unit_name
+        description: The unit's name as the university gives it.
+        data_tests: [not_null]
+      - name: org_unit_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  [institution, school, department, centre, library, institute, directorate]
+      - name: parent_org_unit_id
+        description: The unit one level up; empty only for the institution.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('unza_org_units')
+                field: org_unit_id
+      - name: source_url
+        description: The page the unit was read from.
+        data_tests: [not_null]
+      - name: notes
+
+  - name: department_aliases
+    description: >
+      The names UNZA's units appear under in our sources (affiliation strings in OpenAlex,
+      community and collection names in IRIMS, department names in ORCID employments), each
+      mapped to a unit of unza_org_units. Matching compares department_name_key(alias) with
+      department_name_key(the source's name).
+
+      A row applies only to the kind of name in applies_to (any, affiliation, dspace_set or
+      orcid_employment) and, when school_context_id is set, only when that school is also
+      named. A matcher should use the most specific row that applies: a row for the
+      source's own kind before an "any" row. A name that still matches more than one unit
+      is left unattributed ("Unassigned department") rather than guessed.
+
+      confidence: official (the university's current name), variant (spelling or wording),
+      renamed (a known earlier name) or assumed (a likely mapping that Lighton should
+      confirm). evidence lists where the name was seen.
+    config:
+      column_types:
+        alias: varchar
+        org_unit_id: varchar
+        applies_to: varchar
+        school_context_id: varchar
+        evidence: varchar
+        confidence: varchar
+        notes: varchar
+    columns:
+      - name: alias
+        data_tests: [not_null]
+      - name: org_unit_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('unza_org_units')
+                field: org_unit_id
+      - name: applies_to
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [any, affiliation, dspace_set, orcid_employment]
+      - name: school_context_id
+        description: When set, the alias applies only if this school is also named.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('unza_org_units')
+                field: org_unit_id
+      - name: evidence
+        data_tests: [not_null]
+      - name: confidence
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [official, variant, renamed, assumed]
+      - name: notes
