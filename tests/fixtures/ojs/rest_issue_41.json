@@ -1,0 +1,42 @@
+{
+  "id": 41,
+  "identification": "Vol. 3 No. 2 (2024)",
+  "volume": 3,
+  "number": "2",
+  "year": 2024,
+  "isPublished": true,
+  "datePublished": "2024-11-30 10:00:00",
+  "publishedUrl": "https://journals.unza.zm/index.php/example/issue/view/41",
+  "articles": [
+    {
+      "id": 702,
+      "status": 3,
+      "publications": [
+        {
+          "id": 715,
+          "title": {"en_US": "Records management practices in Zambian public universities"},
+          "authorsString": "Banda, Chipo; Mwila, Ireen",
+          "datePublished": "2024-11-30",
+          "doiObject": {"doi": "10.99999/example.702"},
+          "pages": "1-18"
+        }
+      ],
+      "urlPublished": "https://journals.unza.zm/index.php/example/article/view/702"
+    },
+    {
+      "id": 703,
+      "status": 3,
+      "publications": [
+        {
+          "id": 716,
+          "title": {"en_US": "Digital preservation readiness of district archives"},
+          "authorsString": "Lungu, Thandiwe",
+          "datePublished": "2024-11-30",
+          "doiObject": null,
+          "pages": "19-34"
+        }
+      ],
+      "urlPublished": "https://journals.unza.zm/index.php/example/article/view/703"
+    }
+  ]
+}

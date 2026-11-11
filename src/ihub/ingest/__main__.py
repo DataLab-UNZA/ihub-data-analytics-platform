@@ -19,6 +19,7 @@ import yaml
 
 from ihub.connectors.base import Connector
 from ihub.connectors.dspace_oai import DSpaceOaiConnector
+from ihub.connectors.ojs import OjsConnector
 from ihub.connectors.openalex import OpenAlexConnector
 from ihub.connectors.orcid import OrcidConnector
 from ihub.ingest.raw import write_raw
@@ -27,8 +28,13 @@ from ihub.settings import get_settings
 CONFIG_PATH = Path("config/sources.yml")
 
 # Every connector, in the order they run. Each one reads its own block of config/sources.yml
-# (keyed by its source_name) and is skipped there unless enabled. OJS is next.
-CONNECTORS: list[type[Connector]] = [OpenAlexConnector, DSpaceOaiConnector, OrcidConnector]
+# (keyed by its source_name) and is skipped there unless enabled.
+CONNECTORS: list[type[Connector]] = [
+    OpenAlexConnector,
+    DSpaceOaiConnector,
+    OjsConnector,
+    OrcidConnector,
+]
 
 
 def load_source_config(path: Path = CONFIG_PATH) -> dict[str, dict[str, Any]]:

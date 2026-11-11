@@ -36,6 +36,8 @@ from tenacity import (
     wait_none,
 )
 
+from ihub.connectors.tls import ca_bundle
+
 logger = logging.getLogger(__name__)
 
 #: How far below the repository's ``completeListSize`` the number of records may fall before
@@ -146,6 +148,8 @@ class OaiPmhHarvester:
         attempts: How many times one request is tried before the harvest fails.
         retry_wait: Smallest wait in seconds between retries; ``0`` turns waiting off (tests).
         max_shortfall: See :data:`DEFAULT_MAX_SHORTFALL`.
+        verify: ``True`` for the standard CA bundle, or the path of a bundle to use instead
+            (see :func:`ihub.connectors.tls.ca_bundle`). Checking is never turned off.
     """
 
     def __init__(
@@ -156,9 +160,12 @@ class OaiPmhHarvester:
         attempts: int = DEFAULT_ATTEMPTS,
         retry_wait: float = DEFAULT_RETRY_WAIT,
         max_shortfall: float = DEFAULT_MAX_SHORTFALL,
+        verify: bool | str = True,
     ) -> None:
         if not endpoint:
             raise ValueError("An OAI-PMH endpoint URL is required")
+        if verify is False:
+            raise ValueError("Certificate checking cannot be turned off; add the CA instead")
         self.endpoint = endpoint
         self.max_shortfall = max_shortfall
         self._sickle = _RetryingSickle(
@@ -169,13 +176,15 @@ class OaiPmhHarvester:
             retry_status_codes=list(RETRY_STATUS_CODES),
             default_retry_after=DEFAULT_RETRY_AFTER if retry_wait > 0 else 0,
             timeout=timeout,
+            verify=verify,
         )
 
     @classmethod
     def from_config(cls, endpoint: str, config: dict[str, Any]) -> OaiPmhHarvester:
         """Build a harvester for ``endpoint`` from a source's settings in ``sources.yml``.
 
-        Reads ``timeout``, ``attempts``, ``retry_wait`` and ``max_shortfall``.
+        Reads ``timeout``, ``attempts``, ``retry_wait``, ``max_shortfall`` and
+        ``ca_certificates`` (extra public CA files, for servers with an incomplete chain).
         """
         return cls(
             endpoint,
@@ -183,6 +192,7 @@ class OaiPmhHarvester:
             attempts=int(config.get("attempts", DEFAULT_ATTEMPTS)),
             retry_wait=float(config.get("retry_wait", DEFAULT_RETRY_WAIT)),
             max_shortfall=float(config.get("max_shortfall", DEFAULT_MAX_SHORTFALL)),
+            verify=ca_bundle(config.get("ca_certificates")),
         )
 
     def identify(self) -> dict[str, Any]:

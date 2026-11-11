@@ -22,3 +22,15 @@ def test_an_enabled_repository_has_an_endpoint() -> None:
     """A source without a confirmed endpoint must not run in the weekly pipeline."""
     dspace = load_source_config(REPO_ROOT / CONFIG_PATH)["dspace_oai"]
     assert dspace["enabled"] is False or dspace["oai_endpoint"]
+
+
+def test_ojs_lists_fifteen_distinct_journals() -> None:
+    ojs = load_source_config(REPO_ROOT / CONFIG_PATH)["ojs"]
+    assert ojs["base_url"]
+    assert len(ojs["journals"]) == len({j.lower() for j in ojs["journals"]}) == 15
+
+
+def test_configured_ca_certificate_files_exist() -> None:
+    for name, source in load_source_config(REPO_ROOT / CONFIG_PATH).items():
+        for path in source.get("ca_certificates") or []:
+            assert (REPO_ROOT / path).is_file(), f"{name}: {path}"

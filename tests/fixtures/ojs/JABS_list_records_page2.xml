@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-stylesheet type="text/xsl" href="https://journals.unza.zm/lib/pkp/xml/oai2.xsl" ?><!-- Recorded from https://journals.unza.zm/index.php/JABS/oai on November 11, 2026, then trimmed; see README.md. --><OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/   http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+	<responseDate>2026-11-11T12:29:18Z</responseDate>
+	<request verb="ListRecords" metadataPrefix="oai_dc">https://journals.unza.zm/index.php/JABS/oai</request>
+	<ListRecords>
+		<record>
+			<header>
+				<identifier>oai:ojs2.journals.unza.zm:article/1279</identifier>
+				<datestamp>2025-06-27T13:01:57Z</datestamp>
+				<setSpec>JABS:VET</setSpec>
+			</header>
+			<metadata>
+<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/  http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+	<dc:title xml:lang="en-US">Factors Associated with Occurrence of Antibiotic Resistance in Broiler Chickens in Selected Districts, Zambia</dc:title>
+	<dc:creator>Mirisho, Robert</dc:creator>
+	<dc:creator>Mukuma, Mercy</dc:creator>
+	<dc:creator>Mainda, Geoffrey</dc:creator>
+	<dc:creator>Bumbangi, Flavien Nsoni</dc:creator>
+	<dc:creator>Mudenda, Steward</dc:creator>
+	<dc:creator>Silwamba, Isaac</dc:creator>
+	<dc:creator>Phiri, Nelson</dc:creator>
+	<dc:creator>Muonga, Elizabeth Muligisa</dc:creator>
+	<dc:creator>Mwansa, Mwaba</dc:creator>
+	<dc:creator>Munyeme, Musso</dc:creator>
+	<dc:creator>M'kandawire, Ethel</dc:creator>
+	<dc:creator>Muma, John Bwalya</dc:creator>
+	<dc:description xml:lang="en-US">A cross-sectional study was conducted in five districts of Zambia. The study aimed to investigate the risk factors associated with antimicrobial resistance (AMR) in broiler chickens in Zambia. A total of 109 broiler farms were included in the study, of which 104 were small-scale farms, two were medium-scale, and three were commercial-scale. A semi-structured questionnaire was administered alongside the collection of cloacal swabs and litter samples to determine the risk factors associated with the occurrence of AMR of food pathogen microorganisms on the selected broiler farms. Data collected was analysed using STATA version 12. The broiler farm-level AMR prevalence was 84.4% (n= 109). Gender, marital status, administration of drugs by veterinary personnel or the farmer and the poultry house drainage destination were among the predictors of AMR on broiler chicken farms. The high prevalence of AMR in broiler chicken farms suggests a high dependence on antimicrobials in poultry production in Zambia. In addition, socio-demographics such as gender and age, as well as farm characteristics and management practices, may primarily contribute to the high prevalence of antibiotic resistance. This study has demonstrated the association between the AMR of foodborne pathogens and the risk factors for AMR during poultry production. It is, therefore, necessary for risk management measures such as biosecurity to be put in place to target the identified AMR predictor variables. There is also a need to strengthen AMR surveillance to ensure intervention strategies are appropriate to the existing risk.</dc:description>
+	<dc:publisher xml:lang="en-US">The University of Zambia</dc:publisher>
+	<dc:date>2024-10-15</dc:date>
+	<dc:type>info:eu-repo/semantics/article</dc:type>
+	<dc:type>info:eu-repo/semantics/publishedVersion</dc:type>
+	<dc:format>application/pdf</dc:format>
+	<dc:identifier>https://journals.unza.zm/index.php/JABS/article/view/1279</dc:identifier>
+	<dc:identifier>10.53974/unza.jabs.8.1.1279</dc:identifier>
+	<dc:source xml:lang="en-US">Journal of Agricultural and Biomedical Sciences; Vol 8 No 1 (2024): January-March 2024</dc:source>
+	<dc:source>2710-138X</dc:source>
+	<dc:source>2226-6410</dc:source>
+	<dc:source>10.53974/unza.jabs.8.1</dc:source>
+	<dc:language>eng</dc:language>
+	<dc:relation>https://journals.unza.zm/index.php/JABS/article/view/1279/929</dc:relation>
+	<dc:relation>10.53974/unza.jabs.8.1.1279.929</dc:relation>
+	<dc:rights xml:lang="en-US">Copyright (c) 2024 Journal of Agricultural and Biomedical Sciences</dc:rights>
+</oai_dc:dc>
+			</metadata>
+		</record>
+		<record>
+			<header>
+				<identifier>oai:ojs2.journals.unza.zm:article/1289</identifier>
+				<datestamp>2025-06-27T10:01:28Z</datestamp>
+				<setSpec>JABS:AGS</setSpec>
+			</header>
+			<metadata>
+<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/  http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+	<dc:title xml:lang="en-US">Comparative Study of Growth and Survival of Nile Tilapia (Oreochromis niloticus) and Three Spotted Tilapia (Oreochromis andersonii) Overwintered in Concrete Ponds in Zambia.</dc:title>
+	<dc:creator>Ng'ambi, Jonas Wiza</dc:creator>
+	<dc:creator>Sanida, Manase</dc:creator>
+	<dc:description xml:lang="en-US">This study aims to provide information on the growth of tilapia in winter nurseries.  This will help alleviate the adverse effects of the cold season on aquaculture in Zambia. In this study, Oreochromis niloticus (T1) and Oreochromis   andersonii (T2), with   initial mean weights of 2.12 ± 1.03 and 2.20 ± 1.03g   respectively   were   used.   The   fingerlings were stocked in six concrete ponds (7 × 5 m) at 6 fish/m2 (180   fish/pond),  in   three replications, which resulted in a total of 1080experimental fish. After 12 weeks of culture, the average weight gain (AWG) was 24.37 ±3.67 g for O. niloticus and 20.49 for ± 1.50for O. andersonii. There were no significant differences (P &gt; 0.05) in the final weights (FW), average weight gain (AWG), specific growth rate (SGR), and survival rates of the two species. However, the food conversion ratio (FCR) for O. niloticus of 1.07 ± 0.11was significantly better (P &lt; 0.05) than for O.andersonii   of   1.62   ±   0.10.   The   findings showed that O. andersonii can exhibit similar attributes as O. niloticus in terms of growth and survival in semi-intensive culture and by the end of the cold season, both species were overwintered to weights suitable for grow-out   culture.   Overwintering   of   late   spawn tilapia   may   help   provide   ready-to-stock fingerlings at the onset of the fish growing season in Zambia</dc:description>
+	<dc:publisher xml:lang="en-US">The University of Zambia</dc:publisher>
+	<dc:date>2025-04-10</dc:date>
+	<dc:type>info:eu-repo/semantics/article</dc:type>
+	<dc:type>info:eu-repo/semantics/publishedVersion</dc:type>
+	<dc:type xml:lang="en-US">text</dc:type>
+	<dc:format>application/pdf</dc:format>
+	<dc:identifier>https://journals.unza.zm/index.php/JABS/article/view/1289</dc:identifier>
+	<dc:identifier>10.53974/unza.jabs.8.3.1289</dc:identifier>
+	<dc:source xml:lang="en-US">Journal of Agricultural and Biomedical Sciences; Vol 8 No 3 (2024): July-September 2024</dc:source>
+	<dc:source>2710-138X</dc:source>
+	<dc:source>2226-6410</dc:source>
+	<dc:source>10.53974/unza.jabs.8.3</dc:source>
+	<dc:language>eng</dc:language>
+	<dc:relation>https://journals.unza.zm/index.php/JABS/article/view/1289/975</dc:relation>
+	<dc:relation>10.53974/unza.jabs.8.3.1289.975</dc:relation>
+	<dc:rights xml:lang="en-US">Copyright (c) 2025 Journal of Agricultural and Biomedical Sciences</dc:rights>
+	<dc:rights xml:lang="en-US">http://creativecommons.org/licenses/by/4.0</dc:rights>
+</oai_dc:dc>
+			</metadata>
+		</record>
+		<resumptionToken completeListSize="5" cursor="100"/>
+	</ListRecords>
+</OAI-PMH>
