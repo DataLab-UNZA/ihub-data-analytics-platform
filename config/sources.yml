@@ -18,25 +18,42 @@ sources:
     token_url: https://orcid.org/oauth/token
     search_query: 'ror-org-id:"https://ror.org/03gh19d69"'  # UNZA's ROR ID; verified against the live search
   dspace_oai:
+    # UNZA's Integrated Research Information Management System (IRIMS, DSpace-CRIS), confirmed
+    # in issue #12 on November 11, 2026: Identify answers with repositoryName "(IRIMS)
+    # Integrated Research Information Management System", earliest datestamp 2010-08-09.
+    # A full harvest that day gave 8,792 records (65 deleted) and 258 sets (communities and
+    # collections) in under a minute. Public: no login is needed.
     enabled: true
-    oai_endpoint: null           # verify: UNZA repository OAI-PMH endpoint
-    metadata_prefix: oai_dc
+    oai_endpoint: https://rims.unza.ac.zm/server/oai/request
+    metadata_prefix: oai_dc      # also offered: dim, qdc, mods, rioxx, etdms, uketd_dc, marc, ...
+    harvest_sets: true           # community and collection names, for department attribution
+    # sets: []                   # optional: harvest only these setSpecs (default: everything)
   ojs:
+    # Checked on November 11, 2026: every journal below answers OAI-PMH at
+    # <base_url>/index.php/<path>/oai (882 records in all). The paths are the setSpecs the
+    # site itself lists (index/oai?verb=ListSets): JPRM's path is "medicine" and ZJE's is
+    # "ZAJE", which is why /index.php/JPRM/oai and /index.php/ZJE/oai answered 404. The REST
+    # API is used only for a journal whose OAI-PMH endpoint is unavailable (needs
+    # OJS_API_TOKEN); on this site it currently answers 404 for every journal.
     enabled: true
-    base_url: https://journals.unza.zm   # journal pages at /index.php/<path>
-    journals:                            # 15 home pages confirmed; OAI-PMH 404 for JPRM and ZJE (see PR)
-      - JRNMHS
-      - JAE
-      - JABS
-      - JLSS
-      - JLT
-      - MJLSSE
-      - JONAS
-      - JPRM
-      - ZIJE
-      - ZJE
-      - ZJEMAL
-      - ZJH
-      - ZJRCI
-      - ZLJ
-      - ZJOCI
+    base_url: https://journals.unza.zm
+    metadata_prefix: oai_dc
+    # The site leaves this intermediate out of its certificate chain (see the file).
+    ca_certificates:
+      - config/certs/sectigo-public-server-authentication-ca-dv-r36.crt
+    journals:    # names as each journal's OAI-PMH Identify gives them
+      - JRNMHS     # Journal of Research in Nursing, Midwifery and Health Sciences (no records yet)
+      - JAE        # Journal of Adult Education
+      - JABS       # Journal of Agricultural and Biomedical Sciences
+      - JLSS       # Journal of Law and Social Sciences
+      - jlt        # Journal of Lexicography and Terminology
+      - mjlsse     # Multidisciplinary Journal of Language and Social Sciences Education
+      - JONAS      # Journal of Natural and Applied Sciences
+      - medicine   # Journal of Preventive and Rehabilitative Medicine (JPRM)
+      - ZIJE       # Zambia Interdisciplinary Journal of Education
+      - ZAJE       # Zambia Journal of Education (ZJE)
+      - ZJEMAL     # Zambian Journal of Educational Management, Administration and Leadership
+      - zjh        # Zambia Journal of History
+      - ZJRCI      # Zambia Journal of Religion and Contemporary Issues
+      - ZLJ        # Zambia Law Journal
+      - ZJOCI      # ZANGO: Zambian Journal of Contemporary Issues

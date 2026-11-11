@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-stylesheet type="text/xsl" href="https://journals.unza.zm/lib/pkp/xml/oai2.xsl" ?><!-- Recorded from https://journals.unza.zm/index.php/zjh/oai on November 11, 2026, then trimmed; see README.md. --><OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/   http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+	<responseDate>2026-11-11T12:35:06Z</responseDate>
+	<request verb="ListRecords" metadataPrefix="oai_dc">https://journals.unza.zm/index.php/zjh/oai</request>
+	<ListRecords>
+		<record>
+			<header>
+				<identifier>oai:ojs2.journals.unza.zm:article/1067</identifier>
+				<datestamp>2025-04-22T11:20:44Z</datestamp>
+				<setSpec>zjh:ART</setSpec>
+			</header>
+			<metadata>
+<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/  http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+	<dc:title xml:lang="en-US">Flirting with Power? Nakafwaya, the Greatest Mwadi (Queen) to Re-Invert the Kingdom of Mwata Kazembe</dc:title>
+	<dc:creator>Chama, Meldad L.</dc:creator>
+	<dc:creator>Kanyembo, Terry</dc:creator>
+	<dc:description xml:lang="en-US">Lunda history is not short of reference to women. The marriage between a Lunda queen (Ruweji) and a Luba prince (Cibinda Ilunga) revolutionised precolonial central Africa by merging two dominant political and cultural systems in Central Africa. Arguably, this revolution which led to the first de facto Lunda expansion was caused by a woman, Ruweji. The power of women in Lunda historiography is evident in the making, expansion and sometimes undoing of the Eastern Lunda kingdom of Mwata Kazembe.  Kafuti or Nakafwaya is the most respected Lunda queen whose reign coincided with the most tumultuous period in the history of Mwata Kazembe. Marrying five brothers (four being successive Mwata Kazembes-Lunda Kings) was not a simple feat. Notorious, beautiful, sexy and flirtatious, and a master political and military strategist, Nakafwaya’s role in reinverting the Lunda Kingdom of Mwata Kazembe between 1850 and 1900 needs reassessing.  The role of women in power brokering and consolidation, and the woman’s ‘flirting’ with power in traditional Lunda society is the main theme in this paper. The article demonstrates that Nakafwaya’s ascension to the Lunda throne gave her real power because the Lunda power structures allowed women to exercise both symbolic and real power. Other positions of power for women in Lunda society will also be discussed. The article reconstructed the status of women in traditional Lunda society by using oral information and the genetic method.  That is, by understanding the Mwadiship (Queenship), from its origins to the times of Kafuti, we will illuminate on ‘women and power’ in pre-colonial eastern Lunda society. Thus, the evolution of the Mwadiship will also be understood by placing it within the times or realities and actions of Nakafwaya.</dc:description>
+	<dc:publisher xml:lang="en-US">Department of Historical and Archeological Studies of the School of Humanities and Social Sciences, University of Zambia</dc:publisher>
+	<dc:date>2023-08-31</dc:date>
+	<dc:type>info:eu-repo/semantics/article</dc:type>
+	<dc:type>info:eu-repo/semantics/publishedVersion</dc:type>
+	<dc:type xml:lang="en-US">Peer-reviewed Article</dc:type>
+	<dc:format>application/pdf</dc:format>
+	<dc:identifier>https://journals.unza.zm/index.php/zjh/article/view/1067</dc:identifier>
+	<dc:source xml:lang="en-US">Zambia Journal of History; Vol 10 No 1 (2023): ZAMBIA JOURNAL OF HISTORY; 1-18</dc:source>
+	<dc:source>3005-4532</dc:source>
+	<dc:source>1815-025X</dc:source>
+	<dc:language>eng</dc:language>
+	<dc:relation>https://journals.unza.zm/index.php/zjh/article/view/1067/797</dc:relation>
+	<dc:rights xml:lang="en-US">Copyright (c) 2023 Zambia Journal of History (1815-025X)</dc:rights>
+</oai_dc:dc>
+			</metadata>
+		</record>
+		<record>
+			<header>
+				<identifier>oai:ojs2.journals.unza.zm:article/1069</identifier>
+				<datestamp>2025-04-22T11:20:44Z</datestamp>
+				<setSpec>zjh:ART</setSpec>
+			</header>
+			<metadata>
+<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/  http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+	<dc:title xml:lang="en-US">Embattled  in the Last Theatre of the War:   The Involvement of Abercorn (Mbala) District of Northern Rhodesia  in the First World War</dc:title>
+	<dc:creator>Phiri, Daniel Daliso</dc:creator>
+	<dc:description xml:lang="en-US">A conflict which started between Austria and Serbia,on 28 June 1914, turned into the First World War on 28 July 1914 as aggressors started summoning their allies. Later in 1914, warring states called upon their colonies to service the fighting. By December 1914, Africa had joined the war on the side of respective colonial masters. It was in this context that Abercorn (now Mbala) district, a northerly  district of Northern Rhodeisa (Zambia) that bordered German Tanganyika (Tanzania) got involved in the First World War on behalf of Britain, its colonial master. The war situation faced by the British in Abercorn required collective effort of not only the imperial force but also the local people to fight the Germans. As a result, the British used various ways in the district to enlist the local people into the war. The geographical location of Abercorn made it inevitable for the district to be involved in the fighting.To a large extent, the British used local chiefs, propaganda, coercion and incentives to recruit the local people for war services. This work demonstrates that Africans did not join the colonial army purely due to government propaganda, but that they also had their own reasons for doing so such as desire to earn money and learn how to operate a gun. In this manner, the article brings to the fore the aspect of African agency in the enlistment process. It is also argued that not all Africans buttressed the British war aims as groups such as the Watch Tower Society were subversive towards the recruitment of the local people for war service in the district.</dc:description>
+	<dc:publisher xml:lang="en-US">Department of Historical and Archeological Studies of the School of Humanities and Social Sciences, University of Zambia</dc:publisher>
+	<dc:date>2023-09-04</dc:date>
+	<dc:type>info:eu-repo/semantics/article</dc:type>
+	<dc:type>info:eu-repo/semantics/publishedVersion</dc:type>
+	<dc:type xml:lang="en-US">Peer-reviewed Article</dc:type>
+	<dc:format>application/pdf</dc:format>
+	<dc:identifier>https://journals.unza.zm/index.php/zjh/article/view/1069</dc:identifier>
+	<dc:source xml:lang="en-US">Zambia Journal of History; Vol 10 No 1 (2023): ZAMBIA JOURNAL OF HISTORY; 19-39</dc:source>
+	<dc:source>3005-4532</dc:source>
+	<dc:source>1815-025X</dc:source>
+	<dc:language>eng</dc:language>
+	<dc:relation>https://journals.unza.zm/index.php/zjh/article/view/1069/803</dc:relation>
+	<dc:rights xml:lang="en-US">Copyright (c) 2023 Zambia Journal of History (1815-025X)</dc:rights>
+</oai_dc:dc>
+			</metadata>
+		</record>
+		</ListRecords>
+</OAI-PMH>

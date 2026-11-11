@@ -1,0 +1,16 @@
+{
+  "itemsMax": 1,
+  "items": [
+    {
+      "id": 41,
+      "_href": "https://journals.unza.zm/index.php/example/api/v1/issues/41",
+      "identification": "Vol. 3 No. 2 (2024)",
+      "volume": 3,
+      "number": "2",
+      "year": 2024,
+      "isPublished": true,
+      "datePublished": "2024-11-30 10:00:00",
+      "publishedUrl": "https://journals.unza.zm/index.php/example/issue/view/41"
+    }
+  ]
+}

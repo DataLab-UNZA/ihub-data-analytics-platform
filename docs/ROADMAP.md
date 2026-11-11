@@ -35,8 +35,10 @@ OJS (15) ─┘  database (raw schema)    (dbt staging)       (dbt intermediate)
 
 **Out of scope for iteration 1** (see `CLAUDE.md`): Google Scholar, field-weighted citation metrics, benchmarking against other universities, grants and patents, staff league tables, user accounts, editable profiles and network graphs. Later iterations add other UNZA systems (student information, LMS, HR/payroll, staff performance, promotions).
 
-## Before the connector work starts
+## Source settings
 
-These values are still to be verified (see `config/sources.yml`): UNZA's ROR ID and OpenAlex institution ID, the IRIM OAI-PMH endpoint and metadata formats, the OJS base URL and journal paths, ORCID client credentials, the OpenAlex contact email and API key, and the source for the schools-to-departments seed.
+Verified (see `config/sources.yml`): UNZA's ROR ID and OpenAlex institution ID; the IRIM OAI-PMH endpoint, `https://rims.unza.ac.zm/server/oai/request` (IRIMS, DSpace-CRIS, 8,792 records and 258 sets on November 11, 2026); the OJS base URL and the paths of all 15 journals, which all answer OAI-PMH (JPRM's path is `medicine` and ZJE's is `ZAJE`).
+
+Still to be set: ORCID client credentials in the `pipeline` environment, the OpenAlex contact email and API key, and the source for the schools-to-departments seed. journals.unza.zm leaves an intermediate certificate out of its chain, so the OJS connector adds it from `config/certs/`; that file can go once the site serves its full chain.
 
 Tasks for each stage are [GitHub issues](https://github.com/DataLab-UNZA/ihub-data-analytics-platform/issues), labelled by layer. Demonstration prompts for stage 1 are in [`DEMO_PROMPTS.md`](DEMO_PROMPTS.md).

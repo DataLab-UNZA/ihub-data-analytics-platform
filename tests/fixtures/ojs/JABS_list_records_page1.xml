@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-stylesheet type="text/xsl" href="https://journals.unza.zm/lib/pkp/xml/oai2.xsl" ?><!-- Recorded from https://journals.unza.zm/index.php/JABS/oai on November 11, 2026, then trimmed; see README.md. --><OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/   http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+	<responseDate>2026-11-11T12:28:55Z</responseDate>
+	<request verb="ListRecords" metadataPrefix="oai_dc">https://journals.unza.zm/index.php/JABS/oai</request>
+	<ListRecords>
+		<record>
+			<header>
+				<identifier>oai:ojs2.journals.unza.zm:article/321</identifier>
+				<datestamp>2025-07-15T14:20:57Z</datestamp>
+				<setSpec>JABS:GRL</setSpec>
+			</header>
+			<metadata>
+<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/  http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+	<dc:title xml:lang="en-US">Publish or Perish: Ushering in UNZA-JABS</dc:title>
+	<dc:creator>Chipeta, J</dc:creator>
+	<dc:creator>Nyambe, I</dc:creator>
+	<dc:description xml:lang="en-US">As we usher in this first issue of the University Of Zambia Journal Of Agricultural and Biomedical Sciences (UNZAJABS), JABS Volume 1 Issue 1 2012, we feel compelled to take you into a brief discourse on the essence of a university and the current state of African Universities as a way of ably explaining why we are introducing UNZA-JABS.</dc:description>
+	<dc:publisher xml:lang="en-US">The University of Zambia</dc:publisher>
+	<dc:date>2012-03-31</dc:date>
+	<dc:type>info:eu-repo/semantics/article</dc:type>
+	<dc:type>info:eu-repo/semantics/publishedVersion</dc:type>
+	<dc:format>application/pdf</dc:format>
+	<dc:identifier>https://journals.unza.zm/index.php/JABS/article/view/321</dc:identifier>
+	<dc:identifier>10.53974/unza.jabs.1.1.321</dc:identifier>
+	<dc:source xml:lang="en-US">Journal of Agricultural and Biomedical Sciences; Vol 1 No 1 (2012): January to March 2012; 1-4</dc:source>
+	<dc:source>2710-138X</dc:source>
+	<dc:source>2226-6410</dc:source>
+	<dc:source>10.53974/unza.jabs.1.1</dc:source>
+	<dc:language>eng</dc:language>
+	<dc:relation>https://journals.unza.zm/index.php/JABS/article/view/321/293</dc:relation>
+	<dc:relation>10.53974/unza.jabs.1.1.321.293</dc:relation>
+	<dc:rights xml:lang="en-US">Copyright (c) 2020 Journal of Agricultural and Biomedical Sciences</dc:rights>
+</oai_dc:dc>
+			</metadata>
+		</record>
+		<record>
+			<header>
+				<identifier>oai:ojs2.journals.unza.zm:article/324</identifier>
+				<datestamp>2025-07-14T13:30:50Z</datestamp>
+				<setSpec>JABS:AGS</setSpec>
+			</header>
+			<metadata>
+<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/  http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+	<dc:title xml:lang="en-US">Climate Change: Are We Doing Enough to Avert a Crisis?</dc:title>
+	<dc:creator>Haazele, F</dc:creator>
+	<dc:creator>Chishala, B</dc:creator>
+	<dc:description xml:lang="en-US">What the world is experiencing is clearly pointing to undesirable climatic changes with potential catastrophic consequences. This is evident from rising environmental temperatures associated with longer and deeper droughts, declining water resources in spite of increased overall rate of groundwater recharge in cold climates, predictable declining crop yields and complex variable crop responses. These changes are due to a complex phenomenon with diverse and widespread effects; global climate change</dc:description>
+	<dc:publisher xml:lang="en-US">The University of Zambia</dc:publisher>
+	<dc:date>2012-03-31</dc:date>
+	<dc:type>info:eu-repo/semantics/article</dc:type>
+	<dc:type>info:eu-repo/semantics/publishedVersion</dc:type>
+	<dc:format>application/pdf</dc:format>
+	<dc:identifier>https://journals.unza.zm/index.php/JABS/article/view/324</dc:identifier>
+	<dc:identifier>10.53974/unza.jabs.1.1.324</dc:identifier>
+	<dc:source xml:lang="en-US">Journal of Agricultural and Biomedical Sciences; Vol 1 No 1 (2012): January to March 2012; 5-6</dc:source>
+	<dc:source>2710-138X</dc:source>
+	<dc:source>2226-6410</dc:source>
+	<dc:source>10.53974/unza.jabs.1.1</dc:source>
+	<dc:language>eng</dc:language>
+	<dc:relation>https://journals.unza.zm/index.php/JABS/article/view/324/295</dc:relation>
+	<dc:relation>10.53974/unza.jabs.1.1.324.295</dc:relation>
+	<dc:rights xml:lang="en-US">Copyright (c) 2020 Journal of Agricultural and Biomedical Sciences</dc:rights>
+</oai_dc:dc>
+			</metadata>
+		</record>
+		<record>
+			<header>
+				<identifier>oai:ojs2.journals.unza.zm:article/329</identifier>
+				<datestamp>2025-07-15T10:32:47Z</datestamp>
+				<setSpec>JABS:BMS</setSpec>
+			</header>
+			<metadata>
+<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/  http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+	<dc:title xml:lang="en-US">Prevalence and Factors Associated with Schistosomiasis in Ng'ombe Township of Lusaka Urban District.</dc:title>
+	<dc:creator>Kalungwana, Ng'andwe</dc:creator>
+	<dc:creator>Mwakazanga, David</dc:creator>
+	<dc:creator>Mwansa, James</dc:creator>
+	<dc:creator>Mutengo, Mable Mwale</dc:creator>
+	<dc:creator>Siziya, Seter</dc:creator>
+	<dc:description xml:lang="en-US">Background:The transmission cycle of schistosomiasis requires contamination of surface water by excreta, specific freshwater snails as intermediate hosts, and human water contact. The disease is a rural problem, but urban foci can be found in many endemic areas.  The Zambian Ministry of Health (MOH) reports that schistosomiasis is highly prevalent in rural districts especially those close to the Lakes and rivers. Anecdotal evidence suggests that Ng'ombe Township is the hardest hit by schistosomiasis in Lusaka province of Zambia. Though a number of studies including national surveys have been done on schistosomiasis, no study on the factors associated with the disease in Ng'ombe Township has been documented.
+Materials and Methods: A Cross Sectional Exploratory survey was conducted to determine the prevalence and factors associated with schistosomiasis in five schools of Ng'ombe Township in Lusaka district where a total of 260 school-going children aged 8-14 years, attending grade three (3) to grade five (5) participated in the study. 
+Results: No cases of S. mansoni were recorded in the five schools of Ng'ombe Township.However, the overall prevalence of S. haematobium infection was 13.1% (34/260). Age was significantly associated with infection. Compared with participants of age less than 10 years, participants aged 10-11 years and those aged 12 years or older were 5.17 (95% CI [1.62, 16.49]) and 14.96 (95% CI [2.52, 88.65]) times more likely to get infected, respectively. Children in grade five were 65% (AOR=0.35, 95% CI [0.02, 0.40]) less likely to have Schistosomiasis than those in grade three. Pupils whose source of water at school was a public water tap were 73% (AOR=0.27, 95% CI [0.09, 0.90]) less likely to have schistosomiasis than those that were using a communal hand pump at school.
+Conclusions:The study clearly documents the persistent schistosoma infestation in a peri-urban school age population.</dc:description>
+	<dc:publisher xml:lang="en-US">The University of Zambia</dc:publisher>
+	<dc:date>2012-03-31</dc:date>
+	<dc:type>info:eu-repo/semantics/article</dc:type>
+	<dc:type>info:eu-repo/semantics/publishedVersion</dc:type>
+	<dc:format>application/pdf</dc:format>
+	<dc:identifier>https://journals.unza.zm/index.php/JABS/article/view/329</dc:identifier>
+	<dc:identifier>10.53974/unza.jabs.1.1.329</dc:identifier>
+	<dc:source xml:lang="en-US">Journal of Agricultural and Biomedical Sciences; Vol 1 No 1 (2012): January to March 2012; 7-11</dc:source>
+	<dc:source>2710-138X</dc:source>
+	<dc:source>2226-6410</dc:source>
+	<dc:source>10.53974/unza.jabs.1.1</dc:source>
+	<dc:language>eng</dc:language>
+	<dc:relation>https://journals.unza.zm/index.php/JABS/article/view/329/298</dc:relation>
+	<dc:relation>10.53974/unza.jabs.1.1.329.298</dc:relation>
+	<dc:rights xml:lang="en-US">Copyright (c) 2020 Journal of Agricultural and Biomedical Sciences</dc:rights>
+</oai_dc:dc>
+			</metadata>
+		</record>
+		<resumptionToken expirationDate="2026-11-12T12:28:55Z" completeListSize="5" cursor="0">5b308a1597eb45199c804a8333065bcd</resumptionToken>
+	</ListRecords>
+</OAI-PMH>

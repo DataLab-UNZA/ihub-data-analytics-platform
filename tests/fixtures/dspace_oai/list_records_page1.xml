@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-stylesheet type="text/xsl" href="static/style.xsl"?><!-- Recorded from https://rims.unza.ac.zm/server/oai/request on November 11, 2026, then trimmed; see README.md. --><OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"><responseDate>2026-11-11T12:21:58Z</responseDate><request verb="ListRecords" metadataPrefix="oai_dc">https://rims.unza.ac.zm/server/oai/request</request><ListRecords><record><header><identifier>oai:rims.unza.ac.zm:123456789/4153</identifier><datestamp>2019-08-19T12:30:47Z</datestamp><setSpec>com_123456789_289</setSpec><setSpec>col_123456789_290</setSpec></header><metadata><oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:doc="http://www.lyncode.com/xoai" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+   <dc:title>Morphological characterisation of low and high oil sunflower(Hellanthus Annuus. L.)Varieties for use in marker assisted selection</dc:title>
+   <dc:creator>Chinyundo, Anthony</dc:creator>
+   <dc:subject>Helianthus Annuus. L.</dc:subject>
+   <dc:subject>Sun flower oil</dc:subject>
+   <dc:subject>Cooking oil</dc:subject>
+   <dc:description>Morphological characterization was done on three sunflower varieties; CCA81, Milika and Record in order to see morphological differences for possible use in marker assisted selection. The parameters that were looked at are leaf size, leaf shape, colour of leaves, number of leaves per plant, hairiness at top of stem, days to 50 % flowering and maturity, seed colour, presence of seed stripes, colour of seed stripes, position of seed stripes, shape of seed, weight of 100 seeds, kernel and oil percentages. Significant differences were noted in leaf size, plant height, days to 50 % flowering and maturity. Record had the highest oil percentage of 42.97, Milika 38.77 and CCA81 42.17. In the other parameters no significant differences were established. Variation among these characteristics is important because it allows for development of varieties adapted to specific environments or agro-climatic regions</dc:description>
+   <dc:date>2015-11-11T13:39:13Z</dc:date>
+   <dc:date>2015-11-11T13:39:13Z</dc:date>
+   <dc:date>2015-11-11</dc:date>
+   <dc:type>Other</dc:type>
+   <dc:identifier>http://dspace.unza.zm/handle/123456789/4153</dc:identifier>
+   <dc:language>en</dc:language>
+   <dc:format>application/pdf</dc:format>
+   <dc:format>application/pdf</dc:format>
+</oai_dc:dc>
+</metadata></record><record><header><identifier>oai:rims.unza.ac.zm:123456789/3777</identifier><datestamp>2019-08-19T12:28:04Z</datestamp><setSpec>com_123456789_18</setSpec><setSpec>col_123456789_76</setSpec></header><metadata><oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:doc="http://www.lyncode.com/xoai" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+   <dc:title>Instruction based formative assessment in selected Colleges of Education in Zambia: It's use and factors affecting its use</dc:title>
+   <dc:creator>Mwale, Fred M.</dc:creator>
+   <dc:subject>Educational tests and measurement</dc:subject>
+   <dc:subject>Formative Assessment</dc:subject>
+   <dc:subject>Teacher Effectiveness</dc:subject>
+   <dc:subject>Educational Accountability</dc:subject>
+   <dc:description>The purpose of the study was to evaluate the use of Instruction Based Formative Assessment in   Colleges of Education in Zambia. The objectives of the study were to establish the use of Instruction Based Formative Assessment during lectures, to determine the predominant Instruction Based Formative Assessment strategies being used and to examine factors affecting the use of Instruction Based Formative Assessment in Colleges of Education in Zambia.&#13;
+The target population was Lecturers and Coordinators of Continuous Professional Development (CPD) and Open Distance Learning (CODEL) in colleges of Education in Zambia. A total of 120 respondents participated in the study. There were 100 lecturers and 20 coordinators (10 CPD, 10 CODEL). Quantitative survey research design was used to capture national wide data covering 80% of the provinces of Zambia. Data was collected using   structured questionnaires. Data was analysed using Statistical Package for Social Science (SPSS) software that generated frequencies and percentages which were used in describing distributions of single and summated variables.&#13;
+The study established that: (i) Instruction Based Formative Assessment was used by both coordinators and lecturers during lectures in Colleges of Education in Zambia. However the frequency of using this type of assessment, varied among coordinators and lecturers.                (ii) The predominant   Formative Assessment technique used in Colleges of Education was the technique that involved “providing feedback that moves learners forward in their learning” while the predominant Formative Assessment activity was that which involves “getting students to peer assess their work”. (iii) The predominant factors that affected the use of Instruction Based Formative Assessment in Colleges of Education in Zambia were “time limitation” and “large class size”. In view of the findings of the study, the following recommendations were made:     (i) Administrators of colleges of education should ensure that lecturers in Colleges are given in-service training in student centred instructional and assessment strategies, which include instruction based formative assessment. (ii) Administrators of colleges of education should establish CPD policy of training and orientation of new lecturers in Instructional and assessment strategies. (iii) Ministry of Education, Science, Vocational Training and Early Education in collaboration with Colleges of Education administrators, should ensure that, learner centred Instructional and assessment strategies, with emphasis on an orientation towards formative assessment, is included as a specific component of the teaching methods training curriculum and should be included in the school experience appraisal monitoring tool.</dc:description>
+   <dc:date>2015-04-13T07:36:13Z</dc:date>
+   <dc:date>2015-04-13T07:36:13Z</dc:date>
+   <dc:date>2015-04-13</dc:date>
+   <dc:type>Thesis</dc:type>
+   <dc:identifier>http://dspace.unza.zm/handle/123456789/3777</dc:identifier>
+   <dc:language>en</dc:language>
+   <dc:format>application/pdf</dc:format>
+   <dc:format>application/pdf</dc:format>
+   <dc:format>application/pdf</dc:format>
+   <dc:format>application/pdf</dc:format>
+   <dc:format>application/pdf</dc:format>
+</oai_dc:dc>
+</metadata></record><record><header><identifier>oai:rims.unza.ac.zm:123456789/7371</identifier><datestamp>2022-06-01T10:39:21Z</datestamp><setSpec>com_123456789_18</setSpec><setSpec>col_123456789_76</setSpec></header><metadata><oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:doc="http://www.lyncode.com/xoai" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+   <dc:title>Use of scientific calculators in the teaching and learning of school mathematics: the case of one secondary school in Lusaka, Zambia.</dc:title>
+   <dc:creator>Mashekwa, Mashekwa</dc:creator>
+   <dc:subject>Mathematics--Study and teaching</dc:subject>
+   <dc:subject>Mathematics--Study and teaching (Middle school).</dc:subject>
+   <dc:subject>Mathematics--Study and teaching (Secondary).</dc:subject>
+   <dc:subject>Calculators.</dc:subject>
+   <dc:subject>Computer-assisted instruction.</dc:subject>
+   <dc:description>Thesis</dc:description>
+   <dc:description>The use of scientific calculators in the teaching and learning process of secondary school Mathematics in the Zambian education system began in 2001. Since then, there has been lack of the Zambian context research evidence regarding the use of scientific calculators in the teaching and learning process. In this regard, the present study was intended to contribute to the knowledge about the use of scientific calculators by learners and teachers of Mathematics in secondary schools. A qualitative approach and specifically a case study design was used because it provided a systematic way of acquiring in-depth understanding of the phenomenon which was being investigated. The sample comprised of 8 teachers and 24 learners of secondary school Mathematics. The teachers were selected using a homogeneous purposive sampling technique while the learners were chosen through self-selection sampling technique. In respect of data collection, participant observation schedules, unstructured interviews, focus group discussions and a performance test were utilized. Data accessed through observations, interviews and group discussions were analyzed thematically while the data derived from the performance test was analyzed through exploration of learners’ answers to specific test questions. Analysis of the data showed that teachers of Mathematics supported the use of scientific calculators in the teaching and learning process of Mathematics. Teachers argued that calculators made learners to be over dependent on the gadget even in instances where simple computations are involved and had a salient effect of robbing learners of the necessary ability to think mathematically. Furthermore, learners demonstrated occasional lack of ability to effectively use scientific calculators, for example, in topics such as indices and fractions. This discovery suggested that learners are rarely taught the major functions of a scientific calculator or even how to operate calculators. Moreover, it was found out that teachers also lacked capacity to adequately and appropriately use the functions of scientific calculators. It is therefore recommended that schools adopt unique models of scientific calculators whose functions are easy to use by learners. In addition, subject association programs could provide opportunities for teachers to familiarize themselves with the use of scientific calculators in teaching of Mathematics.&#13;
+Keywords: Scientific calculator, teaching and learning Mathematics, performance, Zambia.</dc:description>
+   <dc:date>2022-06-01T10:39:14Z</dc:date>
+   <dc:date>2022-06-01T10:39:14Z</dc:date>
+   <dc:date>2021</dc:date>
+   <dc:type>Thesis</dc:type>
+   <dc:identifier>http://dspace.unza.zm/handle/123456789/7371</dc:identifier>
+   <dc:language>en</dc:language>
+   <dc:format>application/pdf</dc:format>
+   <dc:format>application/pdf</dc:format>
+   <dc:publisher>The University of Zambia</dc:publisher>
+</oai_dc:dc>
+</metadata></record><resumptionToken completeListSize="5" cursor="0">oai_dc////100</resumptionToken></ListRecords></OAI-PMH>
