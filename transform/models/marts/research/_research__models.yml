@@ -83,3 +83,23 @@ models:
         data_tests: [not_null]
       - name: in_ojs
         data_tests: [not_null]
+  - name: bridge_publication_source
+    description: >
+      One row per source record, linked to its de-duplicated publication. Keyed on the
+      source's name until dim_source_system exists (issue #20).
+    columns:
+      - name: publication_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_publication')
+                field: publication_key
+      - name: source_system
+        data_tests: [not_null]
+      - name: source_record_id
+        data_tests: [not_null]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [source_system, source_record_id]
