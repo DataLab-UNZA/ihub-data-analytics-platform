@@ -39,8 +39,13 @@ def make_work(
     oa_status: str = "closed",
     cited_by_count: int = 0,
     n_authors: int = 1,
+    authors: list[tuple[str, str | None, str | None]] | None = None,
 ) -> dict[str, Any]:
-    """Build a minimal OpenAlex work from the recorded sample's shape, overriding fields."""
+    """Build a minimal OpenAlex work from the recorded sample's shape, overriding fields.
+
+    ``authors`` is an optional list of ``(OpenAlex author ID, name, ORCID iD)`` in author order;
+    without it the work has ``n_authors`` authors who have an ID only.
+    """
     work = copy.deepcopy(sample_works()[0])
     work["id"] = f"https://openalex.org/{work_id}"
     work["title"] = title
@@ -49,9 +54,23 @@ def make_work(
     work["type"] = work_type
     work["open_access"] = {"is_oa": is_oa, "oa_status": oa_status}
     work["cited_by_count"] = cited_by_count
-    work["authorships"] = [
-        {"author": {"id": f"https://openalex.org/A{i}"}} for i in range(n_authors)
-    ]
+    if authors is None:
+        work["authorships"] = [
+            {"author": {"id": f"https://openalex.org/A{i}"}} for i in range(n_authors)
+        ]
+    else:
+        work["authorships"] = [
+            {
+                "author_position": "first" if i == 0 else "middle",
+                "author": {
+                    "id": f"https://openalex.org/{author_id}",
+                    "display_name": name,
+                    "orcid": f"https://orcid.org/{orcid}" if orcid else None,
+                },
+                "is_corresponding": i == 0,
+            }
+            for i, (author_id, name, orcid) in enumerate(authors)
+        ]
     work["primary_location"] = (
         {"source": {"id": f"https://openalex.org/{venue_id}", "display_name": venue_name}}
         if venue_id
@@ -84,7 +103,9 @@ def run_dbt(db: Path, command: str, select: str | None = None) -> None:
     """Run a dbt command (``build``, ``seed``, ...) on ``db`` and fail the test if it fails."""
     args = [command]
     if select:
-        args += ["--select", select]
+        args += ["--select", select] + (
+            ["--indirect-selection", "cautious"] if command == "build" else []
+        )
     args += [
         "--project-dir",
         str(TRANSFORM),
@@ -115,11 +136,54 @@ def _failures(result: Any) -> str:
     )
 
 
+# One inert record per source that gives no publication: it only makes the raw table exist.
+INERT_RAW: dict[str, tuple[str, dict[str, Any]]] = {
+    "dspace_oai": (
+        "oai:inert:0/0",
+        {
+            "record_type": "item",
+            "deleted": True,
+            "datestamp": "2026-01-01T00:00:00Z",
+            "set_specs": [],
+            "metadata": {"title": ["Inert"], "date": ["2026"]},
+        },
+    ),
+    "ojs": (
+        "oai:inert:article/0",
+        {
+            "journal": "inert",
+            "harvest_method": "oai_pmh",
+            "deleted": True,
+            "datestamp": "2026-01-01T00:00:00Z",
+            "metadata": {"title": ["Inert"], "date": ["2026"]},
+        },
+    ),
+    "orcid": (
+        "0000-0000-0000-0000",
+        {
+            "orcid": "0000-0000-0000-0000",
+            "works": {"group": []},
+            "employments": {"affiliation-group": []},
+        },
+    ),
+}
+
+
 def build_warehouse(
-    db: Path, works: list[dict[str, Any]], select: str = "+path:models/marts/research"
+    db: Path,
+    works: list[dict[str, Any]],
+    select: str = "+path:models/marts/research",
+    extra_raw: dict[str, list[tuple[str, dict[str, Any]]]] | None = None,
 ) -> Path:
-    """Load OpenAlex ``works`` into raw_openalex and run ``dbt build`` for ``select``."""
+    """Load OpenAlex ``works`` into raw_openalex and run ``dbt build`` for ``select``.
+
+    ``extra_raw`` maps a source name (dspace_oai, ojs, orcid) to its ``(record_id, payload)``
+    pairs; a source not given gets one inert deleted record so its raw table exists.
+    """
     load_raw(db, "openalex", [(w["id"], w) for w in works])
+    extra = extra_raw or {}
+    for source, inert in INERT_RAW.items():
+        load_raw(db, source, extra.get(source) or [inert])
     run_dbt(db, "build", select)
     return db
 

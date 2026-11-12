@@ -11,7 +11,7 @@ test-paths: ["tests"]
 vars:
   # When several sources describe the same publication, the first source in this list
   # supplies the title, type, venue and other descriptive fields. Add new sources here.
-  source_priority: ["openalex"]
+  source_priority: ["openalex", "dspace_oai", "ojs", "orcid"]
   # How UNZA appears in organisation records (ORCID employments, for now). Names are
   # compared after normalise_org_name; identifiers exactly. Ringgold 108234 and ROR
   # 03gh19d69 are UNZA's (the ROR ID is verified in config/sources.yml).

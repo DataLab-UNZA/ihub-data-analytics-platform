@@ -43,3 +43,39 @@ models:
       - name: n_source_records
         data_tests:
           - not_null
+
+  - name: int_authors__source_records
+    description: >
+      Every author record from every source, with the author_key it resolves to. Authors
+      match on ORCID iD first, then OpenAlex author ID; name-only records stay unmatched.
+    columns:
+      - name: author_key
+        data_tests:
+          - not_null
+      - name: match_rule
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [orcid, openalex_id_to_orcid, openalex_id, single_record]
+      - name: source_system
+        data_tests:
+          - not_null
+      - name: source_record_id
+        data_tests:
+          - not_null
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [source_system, source_record_id]
+
+  - name: int_authors__deduplicated
+    description: One row per de-duplicated author.
+    columns:
+      - name: author_key
+        data_tests:
+          - unique
+          - not_null
+      - name: n_source_records
+        data_tests:
+          - not_null

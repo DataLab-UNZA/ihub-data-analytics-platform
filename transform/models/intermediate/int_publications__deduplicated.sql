@@ -32,7 +32,7 @@ select
     publication_key,
     arg_min(doi, source_rank) filter (where doi is not null) as doi,
     arg_min(title, source_rank) filter (where title is not null) as title,
-    arg_min(year, source_rank) as year,
+    arg_min(year, source_rank) filter (where year is not null) as year,
     arg_min(type, source_rank) filter (where type is not null) as type,
     arg_min(venue_id, source_rank) filter (where venue_id is not null) as venue_id,
     arg_min(venue_name, source_rank) filter (where venue_name is not null) as venue_name,
