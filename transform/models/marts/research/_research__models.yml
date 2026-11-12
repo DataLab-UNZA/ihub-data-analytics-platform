@@ -20,7 +20,8 @@ models:
         data_tests: [not_null]
 
   - name: dim_venue
-    description: One row per venue, plus an "Unknown venue" row.
+    description: >
+      One row per venue (OpenAlex sources and UNZA's OJS journals), plus an "Unknown venue" row.
     columns:
       - name: venue_key
         data_tests: [unique, not_null]
@@ -83,10 +84,20 @@ models:
         data_tests: [not_null]
       - name: in_ojs
         data_tests: [not_null]
+  - name: dim_source_system
+    description: One row per source system (OpenAlex, ORCID, the repository, OJS).
+    columns:
+      - name: source_system_key
+        data_tests: [unique, not_null]
+      - name: source_system
+        data_tests: [unique, not_null]
+      - name: source_name
+        data_tests: [not_null]
+
   - name: bridge_publication_source
     description: >
-      One row per source record, linked to its de-duplicated publication. Keyed on the
-      source's name until dim_source_system exists (issue #20).
+      One row per source record, linked to its de-duplicated publication and to its
+      source system.
     columns:
       - name: publication_key
         data_tests:
@@ -95,11 +106,51 @@ models:
               arguments:
                 to: ref('dim_publication')
                 field: publication_key
-      - name: source_system
-        data_tests: [not_null]
+      - name: source_system_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_source_system')
+                field: source_system_key
       - name: source_record_id
         data_tests: [not_null]
     data_tests:
       - unique_combination:
           arguments:
-            columns: [source_system, source_record_id]
+            columns: [source_system_key, source_record_id]
+
+  - name: dim_topic
+    description: >
+      One row per OpenAlex topic, with its domain, field and subfield.
+    columns:
+      - name: topic_key
+        data_tests: [unique, not_null]
+      - name: topic_id
+        data_tests: [unique, not_null]
+      - name: topic_name
+        data_tests: [not_null]
+
+  - name: bridge_publication_topic
+    description: One row per de-duplicated publication and OpenAlex topic.
+    columns:
+      - name: publication_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_publication')
+                field: publication_key
+      - name: topic_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_topic')
+                field: topic_key
+      - name: is_primary_topic
+        data_tests: [not_null]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [publication_key, topic_key]

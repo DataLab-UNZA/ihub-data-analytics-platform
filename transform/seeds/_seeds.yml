@@ -99,3 +99,25 @@ seeds:
               arguments:
                 values: [official, variant, renamed, assumed]
       - name: notes
+
+  - name: source_systems
+    description: >
+      The sources the platform reads publications from. Feeds dim_source_system. Adding a
+      source means adding a row here, one CTE to int_publications__source_records and the
+      source's name to the source_priority variable in dbt_project.yml.
+    config:
+      column_types:
+        source_system: varchar
+        source_name: varchar
+        source_kind: varchar
+        description: varchar
+    columns:
+      - name: source_system
+        description: The source's short name, as used in the raw and intermediate layers.
+        data_tests: [unique, not_null]
+      - name: source_name
+        description: The name shown in the app.
+        data_tests: [unique, not_null]
+      - name: source_kind
+        data_tests: [not_null]
+      - name: description

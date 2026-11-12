@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: stg_openalex__work_topics
+    description: >
+      One row per OpenAlex work and topic, in the order OpenAlex lists them, with the
+      topic's domain, field and subfield.
+    columns:
+      - name: openalex_id
+        data_tests: [not_null]
+      - name: topic_rank
+        data_tests: [not_null]
+      - name: topic_id
+        description: OpenAlex topic ID without the URL prefix, e.g. T10556.
+        data_tests: [not_null]
+      - name: topic_name
+        data_tests: [not_null]
+      - name: score
+        description: How well OpenAlex thinks the topic fits the work, from 0 to 1.
+      - name: is_primary
+        description: True for the topic OpenAlex names as the work's primary topic.
+        data_tests: [not_null]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [openalex_id, topic_id]
