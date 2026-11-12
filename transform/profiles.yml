@@ -1,8 +1,15 @@
 # No secrets here: the DuckDB path comes from an environment variable.
+#
+# IHUB_DUCKDB_PATH may be absolute or relative. A relative path (such as the
+# data/ihub.duckdb in .env.example) is taken from the repository root, as the Python code
+# takes it, even though dbt runs from transform/. Without it, data/ihub.duckdb.
+# Absolute means starting with "/" (Linux, macOS) or a drive letter such as "C:" (Windows).
 ihub:
   target: dev
   outputs:
     dev:
       type: duckdb
-      path: "{{ env_var('IHUB_DUCKDB_PATH', '../data/ihub.duckdb') }}"
+      path: >-
+        {%- set p = env_var('IHUB_DUCKDB_PATH', '') or 'data/ihub.duckdb' -%}
+        {{ p if (p.startswith('/') or p[1:2] == ':') else '../' ~ p }}
       threads: 4
