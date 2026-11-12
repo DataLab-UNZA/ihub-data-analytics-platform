@@ -38,6 +38,7 @@ class PageSpec:
 PAGES: tuple[PageSpec, ...] = (
     PageSpec("pages/overview.py", "Overview", ":material/dashboard:", default=True),
     PageSpec("pages/publications.py", "Publications", ":material/article:"),
+    PageSpec("pages/coverage.py", "Source coverage", ":material/compare_arrows:"),
 )
 
 

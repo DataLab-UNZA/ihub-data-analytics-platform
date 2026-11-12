@@ -26,9 +26,11 @@ def test_pack_has_every_section_and_fits() -> None:
         "## Folder tree",
         "## Key Python interfaces",
         "## dbt models",
+        "## Source settings",  # the last section: if it is cut, the pack is too long
     ):
         assert heading in pack
     assert len(pack) <= pack_module.MAX_CHARS
+    assert "Pack cut at" not in pack
     assert "class `Connector(ABC)`" in pack
 
 

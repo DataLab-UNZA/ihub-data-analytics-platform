@@ -26,10 +26,10 @@ OJS (15) ─┘  database (raw schema)    (dbt staging)       (dbt intermediate)
 | 0. Foundations | Repository, CI, automatic deployment to Cloud Run, weekly data pipeline, live app | Done, November 9, 2026 |
 | 1. Walking skeleton | OpenAlex only, end to end: UNZA works pulled into staging, cleaned, a first mart, a first Overview page live | Done (#9 to #11) |
 | 2. All sources in staging | Connectors for ORCID, the UNZA institutional repository (IRIM) and the 15 OJS journals, each with tests on recorded sample responses and its own staging tables | Done (#12 to #16) |
-| 3. Pre-processing | Staging models for every source, and the seeds for UNZA's schools, departments and their aliases ([ADR-003](decisions/ADR-003-staging-and-department-attribution.md)) | In review (#17, #18) |
-| 4. De-duplication | Cross-source matching of publications and authors, with source links kept | |
-| 5. Data marts | The full research star schema | |
-| 6. Dashboard | Overview, Publications explorer (filters, CSV export, links to DOI, repository or OJS record), Departments, Authors, Journals and Source coverage pages, with one global year filter | |
+| 3. Pre-processing | Staging models for every source, and the seeds for UNZA's schools, departments and their aliases ([ADR-003](decisions/ADR-003-staging-and-department-attribution.md)) | Done (#17, #18) |
+| 4. De-duplication | Cross-source matching of publications and authors, with source links kept | Done (#19) |
+| 5. Data marts | The full research star schema | Done (#20) |
+| 6. Dashboard | Overview, Publications explorer (filters, CSV export, links to DOI, repository or OJS record), Departments, Authors, Journals and Source coverage pages, with one global year filter | In progress: Overview, Publications (#21) and Source coverage (#22) built |
 
 **Mid-point review target (the minimal product):** stages 1 to 4 working for all four sources, with the Overview and Publications explorer pages live on real data. After the review, each student takes ownership of an area, and stages 5 and 6 are completed together with any new requirements.
 
