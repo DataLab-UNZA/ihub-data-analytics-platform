@@ -55,10 +55,45 @@ def build_mart_db(db: Path) -> Path:
             """
             INSERT INTO marts.fact_publication VALUES
             ('p1','v1',2019,'t1',10,3,true,'gold',true,false,false),
-            ('p2','v1',2020,'t2',20,5,false,'closed',true,false,false),
+            ('p2','v1',2020,'t2',20,5,false,'closed',true,true,false),
             ('p3','v2',2020,'t1',0,1,true,'green',true,false,false),
             ('p4','v0',2022,'t1',5,2,false,'closed',true,false,false),
-            ('p5','v2',2022,'t1',1,1,true,'diamond',false,false,true)
+            ('p5','v2',2022,'t1',1,1,true,'diamond',false,true,true)
+            """
+        )
+        # The sources behind each publication, consistent with the in_<source> flags above:
+        # p1, p3, p4 OpenAlex only; p2 OpenAlex, the repository and ORCID; p5 OJS and the
+        # repository.
+        con.execute(
+            "CREATE TABLE marts.dim_source_system (source_system_key VARCHAR, "
+            "source_system VARCHAR, source_name VARCHAR, source_kind VARCHAR, description VARCHAR)"
+        )
+        con.execute(
+            """
+            INSERT INTO marts.dim_source_system VALUES
+            ('sOA','openalex','OpenAlex','bibliographic index',NULL),
+            ('sOR','orcid','ORCID','researcher registry',NULL),
+            ('sDS','dspace_oai','UNZA Institutional Repository (IRIMS)',
+             'institutional repository',NULL),
+            ('sOJ','ojs','UNZA journals (OJS)','journal platform',NULL)
+            """
+        )
+        con.execute(
+            "CREATE TABLE marts.bridge_publication_source (publication_key VARCHAR, "
+            "source_system_key VARCHAR, source_record_id VARCHAR, source_url VARCHAR, "
+            "match_rule VARCHAR)"
+        )
+        con.execute(
+            """
+            INSERT INTO marts.bridge_publication_source VALUES
+            ('p1','sOA','W1','https://openalex.org/W1','doi'),
+            ('p2','sOA','W2','https://openalex.org/W2','doi'),
+            ('p2','sDS','oai:rims:1/2','https://rims.unza.ac.zm/handle/1/2','doi'),
+            ('p2','sOR','0000-0001:7',NULL,'doi'),
+            ('p3','sOA','W3','https://openalex.org/W3','single_record'),
+            ('p4','sOA','W4','https://openalex.org/W4','single_record'),
+            ('p5','sOJ','oai:ojs:article/5','https://journals.unza.zm/index.php/x/article/view/5','doi'),
+            ('p5','sDS','oai:rims:1/5','https://rims.unza.ac.zm/handle/1/5','doi')
             """
         )
     return db

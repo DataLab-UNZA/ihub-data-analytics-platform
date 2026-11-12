@@ -11,13 +11,15 @@ from __future__ import annotations
 
 import csv
 import io
-from collections.abc import Iterator, Sequence
-from contextlib import contextmanager
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import duckdb
+from ihub.mart._duckdb import MartUnavailableError
+from ihub.mart._duckdb import fetch as _fetch
+
+__all__ = ["MartUnavailableError"]  # re-exported: pages and tests import it from here
 
 #: Sources a publication can be found in, mapped to the ``fact_publication`` flag.
 SOURCE_FLAGS: dict[str, str] = {
@@ -40,10 +42,6 @@ PUBLICATION_COLUMNS: tuple[tuple[str, str], ...] = (
     ("doi_url", "DOI link"),
     ("record_url", "Record link"),
 )
-
-
-class MartUnavailableError(Exception):
-    """The research mart has not been built yet (no database file, or no mart tables)."""
 
 
 @dataclass(frozen=True)
@@ -146,28 +144,6 @@ class FilterOptions:
     oa_statuses: tuple[str, ...]
     venues: tuple[str, ...]
     sources: tuple[str, ...]
-
-
-@contextmanager
-def _connect(db_path: Path) -> Iterator[duckdb.DuckDBPyConnection]:
-    """Open the database read-only, or raise ``MartUnavailableError`` if it is not there."""
-    if not Path(db_path).exists():
-        raise MartUnavailableError(f"No database at {db_path}")
-    try:
-        con = duckdb.connect(str(db_path), read_only=True)
-    except duckdb.Error as exc:
-        raise MartUnavailableError(f"Cannot open the database at {db_path}") from exc
-    try:
-        yield con
-    except duckdb.CatalogException as exc:
-        raise MartUnavailableError("The research mart has not been built yet") from exc
-    finally:
-        con.close()
-
-
-def _fetch(db_path: Path, sql: str, params: Sequence[Any] = ()) -> list[tuple[Any, ...]]:
-    with _connect(db_path) as con:
-        return con.execute(sql, list(params)).fetchall()
 
 
 def is_available(db_path: Path) -> bool:

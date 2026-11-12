@@ -114,3 +114,54 @@ def test_publications_search_and_empty_result(
     app.text_input[0].set_value("no such title").run()
     assert not app.exception
     assert "No publications match" in text_of(app.info)
+
+
+def open_coverage(monkeypatch: pytest.MonkeyPatch, db: Path) -> AppTest:
+    app = run_app(monkeypatch, db)
+    app.switch_page("pages/coverage.py").run()
+    return app
+
+
+def test_coverage_page_shows_every_source_and_the_three_gaps(
+    monkeypatch: pytest.MonkeyPatch, mart_db: Path
+) -> None:
+    app = open_coverage(monkeypatch, mart_db)
+    assert not app.exception
+    metrics = [(m.label, m.value) for m in app.metric]
+    # one card per source, then one count per comparison tab
+    assert metrics[:4] == [
+        ("ORCID", "1"),
+        ("OpenAlex", "4"),
+        ("UNZA Institutional Repository (IRIMS)", "2"),
+        ("UNZA journals (OJS)", "1"),
+    ]
+    assert [value for label, value in metrics[4:]] == ["3", "1", "1", "0"]
+    assert [t.label for t in app.tabs] == [
+        "In OpenAlex, not in the repository",
+        "OJS articles not in OpenAlex",
+        "In the repository, not in OpenAlex",
+        "Compare any two sources",
+    ]
+    assert len(app.dataframe[0].value) == 3  # In OpenAlex, not in the repository
+
+
+def test_coverage_page_follows_the_global_year_filter(
+    monkeypatch: pytest.MonkeyPatch, mart_db: Path
+) -> None:
+    app = open_coverage(monkeypatch, mart_db)
+    app.session_state["year_range"] = (2020, 2020)
+    app.run()
+    assert not app.exception
+    assert [m.value for m in app.metric][4:] == ["1", "0", "0", "0"]
+    assert "None in the selected years." in text_of(app.info)
+
+
+def test_any_two_sources_can_be_compared(monkeypatch: pytest.MonkeyPatch, mart_db: Path) -> None:
+    app = open_coverage(monkeypatch, mart_db)
+    app.selectbox(key="compare-in").set_value("dspace_oai")
+    app.selectbox(key="compare-not-in").set_value("orcid").run()
+    assert not app.exception
+    assert [m.value for m in app.metric][-1] == "1"
+    assert "ORCID holds only what researchers add" in text_of(app.caption)
+    app.selectbox(key="compare-not-in").set_value("dspace_oai").run()
+    assert "Choose two different sources." in text_of(app.info)

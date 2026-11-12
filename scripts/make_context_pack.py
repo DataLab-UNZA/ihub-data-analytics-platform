@@ -26,6 +26,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+#: Folders whose subfolders are listed in the folder tree without their files: the recorded
+#: responses would only fill the pack, and the dbt models have a section of their own.
+COLLAPSED_FOLDERS = ("tests/fixtures/", "transform/models/")
 MAX_CHARS = 30_000  # about 8,000 tokens: leaves most of a free chat for the work itself
 REPO_URL = "https://github.com/DataLab-UNZA/ihub-data-analytics-platform"
 
@@ -79,6 +82,12 @@ def section(markdown: str, heading: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+def without_comment_lines(yaml_text: str) -> str:
+    """YAML text without its comment-only lines (comments after a value are kept)."""
+    lines = yaml_text.strip().splitlines()
+    return "\n".join(line for line in lines if not line.lstrip().startswith("#"))
+
+
 def folder_tree() -> str:
     """Tracked files as an indented tree, with .gitkeep folders shown as empty."""
     files = _run("git", "ls-files").splitlines()
@@ -88,6 +97,12 @@ def folder_tree() -> str:
     for f in sorted(files):
         if f in skip:
             continue
+        prefix = next((p for p in COLLAPSED_FOLDERS if f.startswith(p)), None)
+        if prefix and "/" in f[len(prefix) :]:
+            folder = f[: f.index("/", len(prefix))]
+            if folder in seen:
+                continue
+            f = folder + "/.gitkeep"  # shown as the folder alone (see COLLAPSED_FOLDERS)
         parts = f.split("/")
         for depth in range(len(parts) - 1):
             folder = "/".join(parts[: depth + 1])
@@ -114,18 +129,29 @@ def interfaces() -> str:
     """Public classes and functions in src/ihub, with their first docstring line."""
     out: list[str] = []
     for path in sorted((ROOT / "src" / "ihub").rglob("*.py")):
+        # Streamlit pages are scripts and "_" modules are private: neither is called by
+        # other code, so neither is an interface.
+        if path.parent.name == "pages" or (
+            path.name.startswith("_") and path.name not in ("__init__.py", "__main__.py")
+        ):
+            continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
+        # A source connector is used only through the Connector interface in base.py, so
+        # it shows its classes and fetch_records only; base.py is shown in full.
+        brief = path.parent.name == "connectors" and path.name not in ("base.py", "__init__.py")
         items: list[str] = []
         for node in tree.body:
             if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-                if not node.name.startswith("_"):
+                if not node.name.startswith("_") and not brief:
                     items.append(f"- `{_signature(node)}`: {_first_line(node)}".rstrip(": "))
             elif isinstance(node, ast.ClassDef) and not node.name.startswith("_"):
                 bases = ", ".join(ast.unparse(b) for b in node.bases)
                 name = f"{node.name}({bases})" if bases else node.name
                 items.append(f"- class `{name}`: {_first_line(node)}".rstrip(": "))
                 for sub in node.body:
-                    if isinstance(sub, ast.FunctionDef) and not sub.name.startswith("_"):
+                    if not isinstance(sub, ast.FunctionDef):
+                        continue
+                    if sub.name == "fetch_records" if brief else not sub.name.startswith("_"):
                         items.append(f"  - `{_signature(sub)}`: {_first_line(sub)}".rstrip(": "))
         if items:
             rel = path.relative_to(ROOT).as_posix()
@@ -193,7 +219,7 @@ def build(issues_json: Path | None = None) -> str:
         "## Key Python interfaces\n\n" + interfaces(),
         "## dbt models\n\n" + dbt_models(),
         "## Source settings (config/sources.yml)\n\n```yaml\n"
-        + _read("config/sources.yml").strip()
+        + without_comment_lines(_read("config/sources.yml"))
         + "\n```",
     ]
     pack = "\n\n".join(p.strip() for p in parts) + "\n"
