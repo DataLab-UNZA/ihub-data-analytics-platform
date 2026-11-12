@@ -154,3 +154,42 @@ models:
       - unique_combination:
           arguments:
             columns: [publication_key, topic_key]
+
+  - name: dim_org
+    description: >
+      One row per organisation: UNZA's units (institution > school > department), an
+      "Unassigned department" row, and the external institutions OpenAlex lists on authorships.
+    columns:
+      - name: org_key
+        data_tests: [unique, not_null]
+      - name: org_id
+        data_tests: [unique, not_null]
+      - name: org_name
+        data_tests: [not_null]
+      - name: org_kind
+        description: unza_unit for UNZA's own units, external for any other institution.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [unza_unit, external]
+      - name: parent_org_key
+        description: The unit one level up; only UNZA units have one.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_org')
+                field: org_key
+      - name: country_code
+        description: Two-letter country code. Empty when OpenAlex gives none.
+
+  - name: dim_author
+    description: One row per de-duplicated author.
+    columns:
+      - name: author_key
+        data_tests: [unique, not_null]
+      - name: author_name
+        description: The author's name, or "Unknown author" when no source gives one.
+        data_tests: [not_null]
+      - name: is_unza_author
+        data_tests: [not_null]
