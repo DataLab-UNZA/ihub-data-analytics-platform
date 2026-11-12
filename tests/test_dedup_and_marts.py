@@ -145,3 +145,12 @@ def test_unknown_venue_and_type_labels(db: Path) -> None:
 def test_dim_year_has_no_gaps(db: Path) -> None:
     years = [r["year"] for r in query(db, "select year from marts.dim_year order by year")]
     assert years == [2019, 2020, 2021, 2022]
+
+
+def test_decades_are_labelled_without_decimals(db: Path) -> None:
+    # floor() gives a double, which once read "2010.0s" (found on the real data)
+    rows = query(db, "select distinct decade_start, decade_label from marts.dim_year order by 1")
+    assert rows == [
+        {"decade_start": 2010, "decade_label": "2010s"},
+        {"decade_start": 2020, "decade_label": "2020s"},
+    ]

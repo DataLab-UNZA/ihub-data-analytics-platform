@@ -1,6 +1,7 @@
 -- One row per publication record from every source, in one common shape, with the
 -- publication_key it resolves to. Nothing is dropped except records the source has
--- deleted: this is the link back to each source record.
+-- deleted and publications no source gives a year for (see the end): this is the link
+-- back to each source record.
 --
 -- To add a source: add one CTE below that selects the same columns from that source's
 -- staging model, add it to `unioned`, and add the source to the `source_priority`
@@ -253,3 +254,8 @@ select
     first_author_surname,
     fetched_at
 from resolved
+-- A publication that no source dates is left out, with all its records: it cannot be placed
+-- on the year axis or pass the global year filter. On the real data of November 12, 2026
+-- that was 220 of 24,692 publications (218 ORCID works entered without a date, 2 empty IRIMS
+-- items). An undated record that matches a dated publication is kept.
+qualify max(year) over (partition by md5(match_basis)) is not null

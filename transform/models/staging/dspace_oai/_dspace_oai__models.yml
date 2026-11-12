@@ -12,7 +12,10 @@ models:
       - name: handle
         description: The item's handle, e.g. 123456789/4153.
       - name: item_url
-        description: The item's web address in the repository (the dc:identifier handle link).
+        description: >
+          The item's page in the repository, https://<repository host>/handle/<handle>,
+          built from its OAI identifier. The handle links in dc:identifier name the old
+          address dspace.unza.zm, which no longer resolves.
       - name: title
         description: The first dc:title, with white space tidied. Empty for deleted items.
       - name: year
