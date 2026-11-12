@@ -10,6 +10,7 @@
 --           DSpace's accession timestamps are used only when there is no such value
 --   type    the first dc:type, mapped to the shared vocabulary (standardise_publication_type)
 --   doi     the first dc:identifier that holds a DOI
+--   link    https://<repository host>/handle/<handle>, from the OAI identifier
 
 with latest as (
 
@@ -42,7 +43,14 @@ standardised as (
     select
         record_id as dspace_item_id,
         nullif(regexp_extract(record_id, ':([0-9]+/[0-9]+)$', 1), '') as handle,
-        list_filter(identifiers, lambda i: i like '%/handle/%')[1] as item_url,
+        -- The item's page, built from its OAI identifier ("oai:<repository host>:<handle>"),
+        -- because the handle links in dc:identifier still name the repository's old address
+        -- (dspace.unza.zm), which no longer resolves. Falls back to dc:identifier.
+        coalesce(
+            'https://' || nullif(regexp_extract(record_id, '^oai:([^:]+):', 1), '')
+                || '/handle/' || nullif(regexp_extract(record_id, ':([0-9]+/[0-9]+)$', 1), ''),
+            list_filter(identifiers, lambda i: i like '%/handle/%')[1]
+        ) as item_url,
         {{ clean_text('titles[1]') }} as title,
         coalesce(
             list_min(list_transform(

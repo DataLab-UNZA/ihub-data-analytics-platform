@@ -14,5 +14,6 @@ select
     year as year_key,
     year,
     cast(floor(year / 10) * 10 as integer) as decade_start,
-    cast(floor(year / 10) * 10 as varchar) || 's' as decade_label
+    -- via integer: floor() returns a double, which would read "1960.0s"
+    cast(cast(floor(year / 10) * 10 as integer) as varchar) || 's' as decade_label
 from bounds, unnest(generate_series(first_year, last_year)) as years(year)

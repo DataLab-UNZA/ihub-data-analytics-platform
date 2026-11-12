@@ -87,7 +87,8 @@ def test_one_row_per_item_even_when_delivered_twice(db: Path) -> None:
 def test_a_recorded_item_is_renamed_and_typed(db: Path) -> None:
     row = item(db, "oai:rims.unza.ac.zm:123456789/4153")
     assert row["handle"] == "123456789/4153"
-    assert row["item_url"] == "http://dspace.unza.zm/handle/123456789/4153"
+    # built from the OAI identifier: dc:identifier still names the dead dspace.unza.zm
+    assert row["item_url"] == "https://rims.unza.ac.zm/handle/123456789/4153"
     assert row["title"].startswith("Morphological characterisation of low and high oil")
     assert row["year"] == 2015
     assert (row["type"], row["source_type"]) == ("other", "Other")
