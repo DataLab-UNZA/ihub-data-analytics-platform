@@ -81,7 +81,24 @@ W3 = unza_work(
 # No affiliation at all: only the author's ORCID employment can place these.
 W4 = make_work("W4", title="Water quality", year=2020, authors=[("A1", "Mary Phiri", MARY)])
 W5 = make_work("W5", title="Old study", year=2015, authors=[("A1", "Mary Phiri", MARY)])
-WORKS = [W1, W2, W3, W4, W5]
+# Departments whose official name contains commas, in the middle of the affiliation text.
+W6 = unza_work(
+    "W6",
+    "Spatial study",
+    2021,
+    ("A6", "Chanda Mwape", None),
+    "Department of Mathematics, Statistics and Actuarial Science, "
+    "School of Natural and Applied Sciences, University of Zambia, Lusaka",
+)
+W7 = unza_work(
+    "W7",
+    "Demography study",
+    2021,
+    ("A7", "Lubuto Sakala", None),
+    "Department of Demography, Population Sciences, Monitoring and Evaluation, "
+    "University of Zambia",
+)
+WORKS = [W1, W2, W3, W4, W5, W6, W7]
 
 ORCID = [
     (MARY, {"orcid": MARY, "works": {"group": []}, "employments": EMPLOYMENTS}),
@@ -127,6 +144,10 @@ BIOSCIENCES = "unza/natural-and-applied-sciences/biosciences-and-biotechnology"
 LIBRARY_SCIENCE = "unza/education/library-and-information-science"
 VET_BIOMEDICAL = "unza/veterinary-medicine/biomedical-sciences"
 HEALTH_BIOMEDICAL = "unza/health-sciences/biomedical-sciences"
+MATH_STATS = "unza/natural-and-applied-sciences/mathematics-statistics-and-actuarial-science"
+DEMOGRAPHY = (
+    "unza/humanities-and-social-sciences/demography-population-sciences-monitoring-and-evaluation"
+)
 
 
 @pytest.fixture(scope="module")
@@ -244,6 +265,9 @@ def test_departments_are_attributed_from_each_kind_of_evidence(db: Path) -> None
         # the IRIMS community names the school; the collection names the department
         "Drug study": {(HEALTH_BIOMEDICAL, "dspace_set")},
         "Library study": {(LIBRARY_SCIENCE, "dspace_set")},
+        # official names that contain commas
+        "Spatial study": {(MATH_STATS, "openalex_affiliation")},
+        "Demography study": {(DEMOGRAPHY, "openalex_affiliation")},
     }
 
 
@@ -266,3 +290,118 @@ def test_names_that_cannot_be_placed_get_no_department(db: Path, title: str) -> 
     assert query(
         db, f"select count(*) as n from marts.dim_publication where title = '{title}'"
     ) == [{"n": 1}]
+
+
+def authorship_rows(db: Path) -> dict[str, set[tuple[str, str]]]:
+    """Every fact_authorship row as publication title -> {(author name, org id)}."""
+    rows = query(
+        db,
+        """
+        select publication.title, author.author_name, org.org_id
+        from marts.fact_authorship as authorship
+        join marts.dim_publication as publication using (publication_key)
+        join marts.dim_author as author using (author_key)
+        join marts.dim_org as org using (org_key)
+        """,
+    )
+    found: dict[str, set[tuple[str, str]]] = {}
+    for row in rows:
+        found.setdefault(row["title"], set()).add((row["author_name"], row["org_id"]))
+    return found
+
+
+def test_openalex_authorships_have_one_row_per_author_and_organisation(db: Path) -> None:
+    external = {f"openalex:{i['id'].rsplit('/', 1)[-1]}" for i in SAMPLE_INSTITUTIONS}
+    found = authorship_rows(db)
+    assert found["Cholera in Lusaka"] == {
+        # Mary's two departments (affiliation text and ORCID employment) are two rows
+        ("Mary Phiri", BIOSCIENCES),
+        ("Mary Phiri", LIBRARY_SCIENCE),
+        *{("Ophira Ginsburg", org_id) for org_id in external},
+    }
+    assert found["Calf health"] == {("Joseph Banda", VET_BIOMEDICAL)}
+    assert found["Spatial study"] == {("Chanda Mwape", MATH_STATS)}
+    assert found["Demography study"] == {("Lubuto Sakala", DEMOGRAPHY)}
+    # at UNZA by affiliation, but no department found: never guessed
+    assert found["Cell study"] == {("Ruth Tembo", "unassigned-department")}
+    # no affiliation, but a UNZA employment current in 2020
+    assert found["Water quality"] == {("Mary Phiri", LIBRARY_SCIENCE)}
+    # no affiliation and no employment yet in 2015: an unknown organisation, and the
+    # publication still gets a row at UNZA, for the "No author listed" author
+    assert found["Old study"] == {
+        ("Mary Phiri", "unknown-organisation"),
+        ("No author listed", "unassigned-department"),
+    }
+
+
+def test_repository_authors_take_the_department_found_for_the_item(db: Path) -> None:
+    found = {
+        title: {org_id for _, org_id in rows}
+        for title, rows in authorship_rows(db).items()
+        if title in {"Drug study", "Library study", "Other study", "Ward study"}
+    }
+    assert found == {
+        "Drug study": {HEALTH_BIOMEDICAL},
+        "Library study": {LIBRARY_SCIENCE},
+        "Other study": {"unassigned-department"},
+        "Ward study": {"unassigned-department"},
+    }
+
+
+def test_every_publication_has_an_authorship_row(db: Path) -> None:
+    rows = query(
+        db,
+        """
+        select count(*) as n
+        from marts.fact_publication
+        where publication_key not in (select publication_key from marts.fact_authorship)
+        """,
+    )
+    assert rows == [{"n": 0}]
+
+
+def test_unza_author_count_and_international_collaboration_are_null_when_unknown(db: Path) -> None:
+    rows = query(
+        db,
+        """
+        select publication.title, fact.n_unza_authors, fact.is_international_collab
+        from marts.fact_publication as fact
+        join marts.dim_publication as publication using (publication_key)
+        order by publication.title
+        """,
+    )
+    measures = {r["title"]: (r["n_unza_authors"], r["is_international_collab"]) for r in rows}
+    assert measures == {
+        "Calf health": (1, False),
+        "Cell study": (1, False),
+        "Cholera in Lusaka": (1, True),  # a co-author in Canada
+        "Demography study": (1, False),
+        "Spatial study": (1, False),
+        # OpenAlex gives no affiliation for these, so the answer is unknown, not 0 or false
+        "Old study": (None, None),
+        "Water quality": (None, None),
+        # repository items have no OpenAlex record at all
+        "Drug study": (None, None),
+        "Library study": (None, None),
+        "Other study": (None, None),
+        "Ward study": (None, None),
+    }
+
+
+def test_overlapping_matches_in_one_affiliation_keep_only_the_longest(db: Path) -> None:
+    """The name with commas is found as two overlapping runs of parts; the longer one stays.
+
+    Both runs point to the same unit here, so only the recorded matched name shows which
+    one was kept: the run that goes on to include the school, not the shorter one.
+    """
+    rows = query(
+        db,
+        "select matched_name from intermediate.int_publications__departments "
+        f"where org_unit_id = '{MATH_STATS}'",
+    )
+    assert rows == [
+        {
+            "matched_name": "Department of Mathematics, Statistics and Actuarial Science, "
+            "School of Natural and Applied Sciences"
+        }
+    ]

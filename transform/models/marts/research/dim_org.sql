@@ -1,7 +1,8 @@
 -- One row per organisation: UNZA's own units (the hierarchy institution > school >
 -- department from the unza_org_units seed), an "Unassigned department" row for publications
--- no department can be found for, and the other institutions OpenAlex lists on authorships.
--- Only UNZA units have a parent: org_kind tells the two apart.
+-- no department can be found for, the other institutions OpenAlex lists on authorships, and an
+-- "Unknown organisation" row for authors with no affiliation. Only UNZA units have a parent:
+-- org_kind (unza_unit, external, unknown) tells them apart.
 
 with units as (
 
@@ -50,6 +51,21 @@ unassigned as (
 
 ),
 
+unknown_organisation as (
+
+    select
+        md5('org:unknown-organisation') as org_key,
+        'unknown-organisation' as org_id,
+        'Unknown organisation' as org_name,
+        'unknown' as org_kind,
+        'unknown' as org_type,
+        cast(null as varchar) as parent_org_key,
+        cast(null as varchar) as school_name,
+        cast(null as varchar) as country_code,
+        cast(null as varchar) as ror
+
+),
+
 external_institutions as (
 
     select
@@ -71,5 +87,7 @@ external_institutions as (
 select * from unza_units
 union all
 select * from unassigned
+union all
+select * from unknown_organisation
 union all
 select * from external_institutions

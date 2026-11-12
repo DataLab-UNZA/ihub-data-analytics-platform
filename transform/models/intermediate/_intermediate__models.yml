@@ -118,3 +118,32 @@ models:
       - unique_combination:
           arguments:
             columns: [publication_key, author_key, org_unit_id, evidence]
+
+  - name: int_authorships__resolved
+    description: >
+      One row per publication, author and organisation, the authorships behind fact_authorship.
+      Every publication has at least one row at UNZA (a department or "Unassigned department").
+    columns:
+      - name: publication_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_publications__deduplicated')
+                field: publication_key
+      - name: author_key
+        data_tests: [not_null]
+      - name: org_key
+        data_tests: [not_null]
+      - name: org_basis
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  [openalex_institution, author_department, publication_department,
+                   unassigned, unknown_organisation]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [publication_key, author_key, org_key]

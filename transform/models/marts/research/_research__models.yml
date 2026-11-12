@@ -39,7 +39,9 @@ models:
   - name: fact_publication
     description: >
       One row per de-duplicated publication. Keys: publication, venue, year, type.
-      Measures: cited_by_count, n_authors, is_oa, oa_status and the in_<source> flags.
+      Measures: cited_by_count, n_authors, n_unza_authors, is_oa, oa_status,
+      is_international_collab and the in_<source> flags. n_unza_authors and
+      is_international_collab are null (unknown) for a publication with no OpenAlex affiliation.
     columns:
       - name: publication_key
         data_tests:
@@ -74,10 +76,14 @@ models:
         data_tests: [not_null]
       - name: n_authors
         data_tests: [not_null]
+      - name: n_unza_authors
+        description: Authors whose OpenAlex affiliation is UNZA. Null when OpenAlex gives none.
       - name: is_oa
         data_tests: [not_null]
       - name: oa_status
         data_tests: [not_null]
+      - name: is_international_collab
+        description: Whether any OpenAlex affiliation is outside Zambia. Null when OpenAlex gives none.
       - name: in_openalex
         data_tests: [not_null]
       - name: in_repository
@@ -167,12 +173,14 @@ models:
       - name: org_name
         data_tests: [not_null]
       - name: org_kind
-        description: unza_unit for UNZA's own units, external for any other institution.
+        description: >
+          unza_unit for UNZA's own units, external for any other institution, unknown for the
+          "Unknown organisation" row.
         data_tests:
           - not_null
           - accepted_values:
               arguments:
-                values: [unza_unit, external]
+                values: [unza_unit, external, unknown]
       - name: parent_org_key
         description: The unit one level up; only UNZA units have one.
         data_tests:
@@ -193,3 +201,45 @@ models:
         data_tests: [not_null]
       - name: is_unza_author
         data_tests: [not_null]
+
+  - name: fact_authorship
+    description: >
+      One row per publication, author and organisation (affiliation). Keys: publication,
+      author, org, year. Count authors with count(distinct author_key).
+    columns:
+      - name: publication_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_publication')
+                field: publication_key
+      - name: author_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_author')
+                field: author_key
+      - name: org_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_org')
+                field: org_key
+      - name: year_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_year')
+                field: year_key
+      - name: is_corresponding
+        data_tests: [not_null]
+      - name: org_basis
+        data_tests: [not_null]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [publication_key, author_key, org_key]

@@ -40,3 +40,18 @@ select
 from {{ ref('int_authors__deduplicated') }} as authors
 left join unza_author_keys
     on authors.author_key = unza_author_keys.author_key
+
+union all
+
+-- The author of the row that carries a publication's department when none of its listed
+-- authors is at UNZA (see int_authorships__resolved).
+select
+    md5('author:none') as author_key,
+    'No author listed' as author_name,
+    cast(null as varchar) as orcid_id,
+    cast(null as varchar) as orcid_url,
+    cast(null as varchar) as openalex_author_id,
+    cast(null as varchar) as openalex_url,
+    false as is_unza_author,
+    0 as n_source_records,
+    0 as n_sources
