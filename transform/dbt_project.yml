@@ -17,6 +17,8 @@ vars:
   # 03gh19d69 are UNZA's (the ROR ID is verified in config/sources.yml).
   unza_org_names: ["university of zambia", "unza"]
   unza_org_identifiers: ["108234", "https://ror.org/03gh19d69", "03gh19d69"]
+  # UNZA's institution ID in OpenAlex (verified; see institution_id in config/sources.yml).
+  unza_openalex_institution_ids: ["I33278361"]
 
 seeds:
   ihub:

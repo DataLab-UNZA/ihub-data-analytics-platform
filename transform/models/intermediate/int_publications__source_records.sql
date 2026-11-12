@@ -77,7 +77,7 @@ ojs as (
         title,
         year,
         type,
-        cast(null as varchar) as venue_id,
+        'ojs:' || journal_path as venue_id,
         venue_name,
         false as is_oa,
         cast(null as varchar) as oa_status,

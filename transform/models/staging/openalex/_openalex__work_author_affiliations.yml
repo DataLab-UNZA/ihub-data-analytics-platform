@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: stg_openalex__work_author_affiliations
+    description: >
+      One row per OpenAlex work, author, institution and the raw affiliation text that
+      named the institution.
+    columns:
+      - name: openalex_id
+        data_tests: [not_null]
+      - name: author_position
+        data_tests: [not_null]
+      - name: institution_id
+        description: OpenAlex institution ID without the URL prefix, e.g. I33278361.
+        data_tests: [not_null]
+      - name: institution_name
+      - name: country_code
+        description: Two-letter country code of the institution, as OpenAlex gives it.
+      - name: is_unza_institution
+        description: True when the institution is the University of Zambia.
+        data_tests: [not_null]
+      - name: raw_affiliation_string
+        description: The affiliation text as the publisher printed it; empty if OpenAlex gives none.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [openalex_id, author_position, institution_id, raw_affiliation_string]

@@ -79,3 +79,71 @@ models:
       - name: n_source_records
         data_tests:
           - not_null
+
+  - name: int_publications__departments
+    description: >
+      The UNZA department-level units each publication is attributed to, with the evidence.
+      Author-level evidence (OpenAlex affiliations, ORCID employments) names the author;
+      publication-level evidence (IRIMS sets) leaves author_key empty. A publication with no
+      row here is "Unassigned department" in the mart.
+    columns:
+      - name: publication_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_publications__deduplicated')
+                field: publication_key
+      - name: author_key
+        description: Empty for publication-level evidence.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('int_authors__deduplicated')
+                field: author_key
+      - name: org_unit_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('unza_org_units')
+                field: org_unit_id
+      - name: evidence
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [openalex_affiliation, orcid_employment, dspace_set]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [publication_key, author_key, org_unit_id, evidence]
+
+  - name: int_authorships__resolved
+    description: >
+      One row per publication, author and organisation, the authorships behind fact_authorship.
+      Every publication has at least one row at UNZA (a department or "Unassigned department").
+    columns:
+      - name: publication_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_publications__deduplicated')
+                field: publication_key
+      - name: author_key
+        data_tests: [not_null]
+      - name: org_key
+        data_tests: [not_null]
+      - name: org_basis
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  [openalex_institution, author_department, publication_department,
+                   unassigned, unknown_organisation]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [publication_key, author_key, org_key]

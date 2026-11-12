@@ -1,0 +1,5 @@
+source_system,source_name,source_kind,description
+openalex,OpenAlex,bibliographic index,Works with an author affiliated to UNZA
+orcid,ORCID,researcher registry,Works and employment records of UNZA researchers
+dspace_oai,UNZA Institutional Repository (IRIMS),institutional repository,Items harvested over OAI-PMH
+ojs,UNZA journals (OJS),journal platform,Articles of the UNZA journals on OJS
