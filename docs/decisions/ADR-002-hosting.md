@@ -1,6 +1,6 @@
 # ADR-002: Hosting and deployment on Google Cloud Run
 
-- **Status:** Accepted
+- **Status:** Accepted; the Streamlit idle pause and single-container image are superseded by [ADR-007](ADR-007-nextjs-only-front-end.md)
 - **Date:** November 9, 2026
 - **Decided by:** Lighton Phiri (session 02, Deployment)
 

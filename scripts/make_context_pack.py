@@ -142,11 +142,8 @@ def interfaces() -> str:
     """Public classes and functions in src/ihub, with their first docstring line."""
     out: list[str] = []
     for path in sorted((ROOT / "src" / "ihub").rglob("*.py")):
-        # Streamlit pages are scripts and "_" modules are private: neither is called by
-        # other code, so neither is an interface.
-        if path.parent.name == "pages" or (
-            path.name.startswith("_") and path.name not in ("__init__.py", "__main__.py")
-        ):
+        # "_" modules are private: they are not called by other code, so not an interface.
+        if path.name.startswith("_") and path.name not in ("__init__.py", "__main__.py"):
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         # A source connector is used only through the Connector interface in base.py, so

@@ -717,19 +717,6 @@ a.bar-list__label {
 .bar--teal { --bar-color: var(--teal); }
 .bar--blue { --bar-color: var(--blue); }
 
-/* Stacked proportion bar */
-.stack-bar {
-  display: flex;
-  height: 44px;
-  overflow: hidden;
-  border-radius: 4px;
-}
-
-.stack-bar__seg { display: block; }
-.stack-bar__seg--accent { background: var(--accent); }
-.stack-bar__seg--teal { background: var(--teal); }
-.stack-bar__seg--blue { background: var(--blue); }
-
 .legend {
   display: grid;
   gap: 8px;
@@ -2194,7 +2181,6 @@ a.bar-list__label {
   .auth-card { padding: 28px 20px; }
   .otp__input { width: 44px; height: 54px; }
   .brand-preview { grid-template-columns: minmax(0, 1fr); }
-  .stack-bar { height: 32px; }
   .skeleton-chart { gap: 12px; }
 }
 

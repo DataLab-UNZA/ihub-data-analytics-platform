@@ -9,7 +9,7 @@
 ```
 OpenAlex ─┐
 ORCID ────┤  1. pull each source      2. pre-process      3. de-duplicate       4. data marts       5. render
-IRIM ─────┤  into its own staging  ─► each source      ─► across sources    ─► (star schema)   ─► Streamlit
+IRIM ─────┤  into its own staging  ─► each source      ─► across sources    ─► (star schema)   ─► Next.js
 OJS (15) ─┘  database (raw schema)    (dbt staging)       (dbt intermediate)    (dbt marts)          dashboard
 ```
 
@@ -17,7 +17,7 @@ OJS (15) ─┘  database (raw schema)    (dbt staging)       (dbt intermediate)
 2. **Pre-process:** dbt staging models, one folder per source (`transform/models/staging/<source>/`), rename, type and standardise (DOIs, names, dates, departments). No joins across sources.
 3. **De-duplicate:** dbt intermediate models match records found in more than one source. Publications match on DOI first, then normalised title + year + first-author surname; authors match on ORCID first, then OpenAlex ID. Every record keeps a link to each source it came from.
 4. **Data marts:** the research star schema in `CLAUDE.md`.
-5. **Render:** Streamlit pages that call `src/ihub/mart/` (never SQL in pages), deployed to Google Cloud Run.
+5. **Render:** Next.js pages (`web/`) that call the FastAPI research API, which calls `src/ihub/mart/` (never SQL in pages or routes), deployed to Google Cloud Run.
 
 ## Stages
 

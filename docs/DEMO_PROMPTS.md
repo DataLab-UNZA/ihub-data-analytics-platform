@@ -1,5 +1,7 @@
 # Demonstration prompts: stage 1 walking skeleton
 
+> **Historical record.** These prompts built the first, Streamlit version of the app. Streamlit has since been replaced by the Next.js front end and the FastAPI research API ([ADR-007](decisions/ADR-007-nextjs-only-front-end.md)); adapt any page step to `web/` before reusing it.
+
 These prompts show the team how prompting Claude and deploying work, by building a first version of the dashboard that follows the whole pipeline (pull → pre-process → de-duplicate → data marts → render). Each prompt is one small step that can be reviewed before the next one. Run them in order in a Claude session on the repository (Lighton's Max account), with each Navigator logging their prompt in the Prompt Log first.
 
 Stage 1 uses OpenAlex only, so the de-duplication step works within one source; it is built so that the other sources (ORCID, IRIM, OJS) plug into the same steps in stage 2.

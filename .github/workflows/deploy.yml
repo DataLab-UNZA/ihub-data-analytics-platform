@@ -103,9 +103,12 @@ jobs:
           RUNTIME_SA: ${{ vars.GCP_RUNTIME_SA }}
           DATA_TAG: ${{ steps.data.outputs.tag }}
         run: |
-          export SERVICE REF RUNTIME_SA DATA_TAG
-          export SHORT_REF="$(echo "$REF" | cut -c1-12)"
-          export API_IMAGE="$REGISTRY/api:$REF" WEB_IMAGE="$REGISTRY/web:$REF"
+          SHORT_REF="$(echo "$REF" | cut -c1-12)"
+          API_IMAGE="$REGISTRY/api:$REF"
+          WEB_IMAGE="$REGISTRY/web:$REF"
+          export SERVICE REF SHORT_REF RUNTIME_SA DATA_TAG API_IMAGE WEB_IMAGE
+          # Single quotes on purpose: envsubst replaces only the variables listed here.
+          # shellcheck disable=SC2016
           envsubst '${SERVICE} ${REF} ${SHORT_REF} ${DATA_TAG} ${RUNTIME_SA} ${API_IMAGE} ${WEB_IMAGE}' \
             < deploy/service.yaml > "$RUNNER_TEMP/service.yaml"
           gcloud run services replace "$RUNNER_TEMP/service.yaml" --region "${{ vars.GCP_REGION }}" --quiet
@@ -115,7 +118,7 @@ jobs:
       - name: Check the app responds
         run: |
           url="${{ steps.deploy.outputs.url }}"
-          for i in 1 2 3 4 5 6; do
+          for _ in 1 2 3 4 5 6; do
             if curl -fsS "$url/healthz" && curl -fsS -o /dev/null "$url/overview"; then
               echo; echo "Live at $url" >> "$GITHUB_STEP_SUMMARY"
               echo "Commit \`$REF\`" >> "$GITHUB_STEP_SUMMARY"

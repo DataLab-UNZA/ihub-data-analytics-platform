@@ -29,7 +29,7 @@ body:
         - Connector (ingestion)
         - Staging / intermediate (dbt)
         - Research mart (dbt)
-        - Web app (Streamlit)
+        - Web app (Next.js front end or API)
         - CI / deployment
         - Not sure
   - type: textarea

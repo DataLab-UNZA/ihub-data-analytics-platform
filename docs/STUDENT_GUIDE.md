@@ -38,10 +38,18 @@ cp .env.example .env               # Windows PowerShell: copy .env.example .env
 uv run pre-commit install          # checks your code before every commit
 uv run pytest                      # all tests should pass
 uv run python -m ihub.ingest       # creates data/ihub.duckdb
-uv run streamlit run src/ihub/app/Home.py
+uv run uvicorn ihub.api.app:app --port 8000     # the API; leave it running
 ```
 
-**Done when:** `pytest` reports only passes, and http://localhost:8501 shows the iHub home page. Stop the app with Ctrl+C.
+In a second terminal (needs [Node.js](https://nodejs.org/) 20.9 or later):
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+**Done when:** `pytest` reports only passes, and http://localhost:3000/overview shows the iHub overview. Stop each with Ctrl+C.
 
 ### Step 4. Tell Git who you are (once per computer)
 
@@ -211,8 +219,9 @@ The people on the project are listed in [`CONTRIBUTORS.md`](../CONTRIBUTORS.md).
 | see what comes next | [`ROADMAP.md`](ROADMAP.md) and the issues |
 | add a data source | `src/ihub/connectors/` (subclass `Connector` in `base.py`) and `config/sources.yml` |
 | clean or combine data | `transform/models/` (dbt: `staging/`, `intermediate/`, `marts/research/`) |
-| add a query for a page | `src/ihub/mart/` (pages never contain SQL) |
-| add or change a page | `src/ihub/app/` |
+| add a query for a page | `src/ihub/mart/` (pages and routes never contain SQL), then a route in `src/ihub/api/routes.py` |
+| add or change a page | `web/src/app/` (see [`web/README.md`](../web/README.md)) |
+| protect a route by role | `require(Permission...)` from `src/ihub/auth/api.py`; roles in `src/ihub/auth/rbac.py` |
 | add a test | `tests/` (tests never call live APIs; use recorded responses) |
 | understand a design decision | [`decisions/`](decisions/) |
 | deploy, roll back or check costs | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
