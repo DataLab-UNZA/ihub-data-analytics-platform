@@ -6,7 +6,7 @@
 - Production needs a persistent user store (Firestore, ADR-009). Until it exists,
   authentication refuses to run there, because Cloud Run's disk is temporary.
 - A sign-in method is offered only when it is configured: Google needs the client ID,
-  client secret and public URL; email codes need an SMTP host (or development).
+  client secret and public URL; email codes need a mail transport (ihub.mail).
 """
 
 from __future__ import annotations
@@ -22,17 +22,13 @@ from ihub.auth.config import (
     parse_email_list,
     utc_now,
 )
-from ihub.auth.email_codes import (
-    ConsoleEmailSender,
-    EmailCodeService,
-    EmailSender,
-    SmtpEmailSender,
-)
+from ihub.auth.email_codes import EmailCodeService, EmailSender, MailCodeSender
 from ihub.auth.errors import AuthNotConfiguredError
 from ihub.auth.google import GoogleOAuthClient
 from ihub.auth.service import AuthService
 from ihub.auth.sqlite_store import SqliteAuthStore
 from ihub.auth.tokens import TokenService
+from ihub.mail.registry import MailNotConfiguredError, transport_from_settings
 from ihub.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -56,18 +52,16 @@ def _secret(settings: Settings, development: bool) -> bytes:
     raise AuthNotConfiguredError("Sign-in is not available: IHUB_AUTH_SECRET is not set.")
 
 
-def _email_sender(settings: Settings, development: bool) -> EmailSender | None:
-    if settings.ihub_smtp_host and settings.ihub_smtp_from:
-        password = settings.ihub_smtp_password
-        return SmtpEmailSender(
-            settings.ihub_smtp_host,
-            settings.ihub_smtp_port,
-            settings.ihub_smtp_from,
-            username=settings.ihub_smtp_username,
-            password=password.get_secret_value() if password else None,
-            use_ssl=settings.ihub_smtp_ssl,
-        )
-    return ConsoleEmailSender() if development else None
+def _email_sender(settings: Settings) -> EmailSender | None:
+    """Codes go through the configured mail transport (ihub.mail); None if there is none."""
+    try:
+        transport = transport_from_settings(settings)
+    except MailNotConfiguredError as exc:
+        raise AuthNotConfiguredError(f"Email sign-in is not available: {exc}") from exc
+    if transport is None:
+        return None
+    sender = settings.ihub_smtp_from or settings.ihub_smtp_username or "ihub@localhost"
+    return MailCodeSender(transport, sender)
 
 
 def _google(settings: Settings, config: AuthConfig) -> GoogleOAuthClient | None:
@@ -112,7 +106,7 @@ def build_auth_service(settings: Settings, *, clock: Clock = utc_now) -> AuthSer
         store,
         tokens=TokenService(config, store.refresh_tokens, clock),
         email_codes=EmailCodeService(
-            config, store.email_challenges, _email_sender(settings, development), clock
+            config, store.email_challenges, _email_sender(settings), clock
         ),
         google=_google(settings, config),
         clock=clock,
