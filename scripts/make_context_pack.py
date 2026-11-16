@@ -33,16 +33,20 @@ COLLAPSED_FOLDERS = ("tests/fixtures/", "transform/models/", "web/")
 MAX_CHARS = 35_000  # about 9,300 tokens: leaves most of a free chat for the work itself
 REPO_URL = "https://github.com/DataLab-UNZA/ihub-data-analytics-platform"
 #: Packages used through a few names only. For each module: None shows it in full, a
-#: tuple shows only those names, and modules not listed show their summary line only.
+#: tuple shows only those names (an empty tuple: its summary line), and modules that are
+#: not listed are left out (their package docstring describes them).
 BRIEF_PACKAGES: dict[str, dict[str, tuple[str, ...] | None]] = {
-    # Routes protect themselves with these (ADR-010).
-    "auth": {"__init__.py": None, "rbac.py": None, "api.py": ("require",)},
-    # Features send mail through the interface; providers plug in by name.
-    "mail": {
-        "__init__.py": None,
-        "transport.py": ("MailTransport",),
-        "registry.py": ("register_transport",),
+    # Routes protect themselves with require (ADR-010).
+    "auth": {
+        "rbac.py": None,
+        "api.py": ("require",),
+        "service.py": (),
+        "tokens.py": (),
+        "google.py": (),
+        "email_codes.py": (),
     },
+    # Features send mail through the interface; providers plug in by name.
+    "mail": {"transport.py": ("MailTransport",), "registry.py": ("register_transport",)},
 }
 
 # Files bundled with the pack in the zip, next to context-pack.md.
@@ -160,7 +164,9 @@ def interfaces() -> str:
         # it shows its classes and fetch_records only; base.py is shown in full.
         brief = path.parent.name == "connectors" and path.name not in ("base.py", "__init__.py")
         brief_package = BRIEF_PACKAGES.get(path.parent.name)
-        shown = brief_package.get(path.name, ()) if brief_package is not None else None
+        if brief_package is not None and path.name not in brief_package:
+            continue
+        shown = brief_package[path.name] if brief_package is not None else None
         summary_only = shown == ()
         items: list[str] = []
         plain_data: list[str] = []  # data classes with no methods: listed on one line below
