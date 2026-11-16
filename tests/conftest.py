@@ -103,3 +103,11 @@ def build_mart_db(db: Path) -> Path:
 def mart_db(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """A tiny research mart, built once per test run."""
     return build_mart_db(tmp_path_factory.mktemp("mart") / "mart.duckdb")
+
+
+@pytest.fixture(scope="session")
+def insights_db(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The tiny mart plus organisations, authors and topics, built once per test run."""
+    from tests.insights_helpers import build_insights_db
+
+    return build_insights_db(tmp_path_factory.mktemp("insights") / "insights.duckdb")

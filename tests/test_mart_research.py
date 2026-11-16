@@ -156,6 +156,7 @@ def test_row_contents(mart_db: Path) -> None:
         doi="10.1/a",
         doi_url="https://doi.org/10.1/a",
         record_url="https://openalex.org/W1",
+        publication_key="p1",
     )
 
 

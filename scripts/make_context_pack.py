@@ -27,9 +27,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 #: Folders whose subfolders are listed in the folder tree without their files: the recorded
-#: responses would only fill the pack, and the dbt models have a section of their own.
-COLLAPSED_FOLDERS = ("tests/fixtures/", "transform/models/")
-MAX_CHARS = 30_000  # about 8,000 tokens: leaves most of a free chat for the work itself
+#: responses would only fill the pack, the dbt models have a section of their own, and the
+#: Next.js app (web/) is documented in web/README.md.
+COLLAPSED_FOLDERS = ("tests/fixtures/", "transform/models/", "web/")
+MAX_CHARS = 33_000  # about 8,800 tokens: leaves most of a free chat for the work itself
 REPO_URL = "https://github.com/DataLab-UNZA/ihub-data-analytics-platform"
 
 # Files bundled with the pack in the zip, next to context-pack.md.
@@ -125,6 +126,16 @@ def _first_line(node: ast.AST) -> str:
     return doc.strip().splitlines()[0] if doc else ""
 
 
+def _is_plain_data_class(node: ast.AST) -> bool:
+    """True for a public ``@dataclass`` that defines no methods (its fields are its interface)."""
+    return (
+        isinstance(node, ast.ClassDef)
+        and not node.name.startswith("_")
+        and any(ast.unparse(d).startswith("dataclass") for d in node.decorator_list)
+        and not any(isinstance(sub, ast.FunctionDef) for sub in node.body)
+    )
+
+
 def interfaces() -> str:
     """Public classes and functions in src/ihub, with their first docstring line."""
     out: list[str] = []
@@ -140,10 +151,13 @@ def interfaces() -> str:
         # it shows its classes and fetch_records only; base.py is shown in full.
         brief = path.parent.name == "connectors" and path.name not in ("base.py", "__init__.py")
         items: list[str] = []
+        plain_data: list[str] = []  # data classes with no methods: listed on one line below
         for node in tree.body:
             if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 if not node.name.startswith("_") and not brief:
                     items.append(f"- `{_signature(node)}`: {_first_line(node)}".rstrip(": "))
+            elif _is_plain_data_class(node):
+                plain_data.append(f"`{node.name}`")
             elif isinstance(node, ast.ClassDef) and not node.name.startswith("_"):
                 bases = ", ".join(ast.unparse(b) for b in node.bases)
                 name = f"{node.name}({bases})" if bases else node.name
@@ -153,6 +167,8 @@ def interfaces() -> str:
                         continue
                     if sub.name == "fetch_records" if brief else not sub.name.startswith("_"):
                         items.append(f"  - `{_signature(sub)}`: {_first_line(sub)}".rstrip(": "))
+        if plain_data:
+            items.append("- data classes: " + ", ".join(plain_data))
         if items:
             rel = path.relative_to(ROOT).as_posix()
             module_doc = _first_line(tree)
