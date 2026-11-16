@@ -13,3 +13,4 @@ scripts
 config
 *.md
 !README.md
+web
