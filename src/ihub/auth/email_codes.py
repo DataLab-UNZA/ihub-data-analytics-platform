@@ -12,9 +12,6 @@ import hashlib
 import hmac
 import math
 import secrets
-import smtplib
-import ssl
-import sys
 import uuid
 from dataclasses import replace
 from datetime import timedelta
@@ -30,6 +27,7 @@ from ihub.auth.errors import (
 )
 from ihub.auth.models import EmailChallenge
 from ihub.auth.store import EmailChallengeRepository
+from ihub.mail.transport import MailDeliveryError, MailTransport
 
 CODE_DIGITS = 6
 _HOUR = timedelta(hours=1)
@@ -57,58 +55,23 @@ def sign_in_message(to: str, sender: str, code: str, valid_minutes: int) -> Emai
     return message
 
 
-class ConsoleEmailSender:
-    """Development only: prints the code to the API's console instead of sending it."""
+class MailCodeSender:
+    """Sends sign-in codes through any mail transport (:mod:`ihub.mail`).
 
-    def send_sign_in_code(self, to: str, code: str, valid_minutes: int) -> None:
-        print(
-            f"[ihub dev] Sign-in code for {to}: {code} (valid for {valid_minutes} minutes)",
-            file=sys.stderr,
-            flush=True,
-        )
+    This class only writes the message; the transport (SMTP, console, or any provider
+    registered later) delivers it, so changing provider never touches sign-in code.
+    """
 
-
-class SmtpEmailSender:
-    """Sends codes through any SMTP mailbox: STARTTLS on 587, or implicit TLS on 465."""
-
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        sender: str,
-        *,
-        username: str | None = None,
-        password: str | None = None,
-        use_ssl: bool = False,
-        timeout: float = 15.0,
-    ) -> None:
-        self._host = host
-        self._port = port
+    def __init__(self, transport: MailTransport, sender: str) -> None:
+        self._transport = transport
         self._sender = sender
-        self._username = username
-        self._password = password
-        self._use_ssl = use_ssl
-        self._timeout = timeout
 
     def send_sign_in_code(self, to: str, code: str, valid_minutes: int) -> None:
-        message = sign_in_message(to, self._sender, code, valid_minutes)
-        context = ssl.create_default_context()
         try:
-            if self._use_ssl:
-                smtp: smtplib.SMTP = smtplib.SMTP_SSL(
-                    self._host, self._port, timeout=self._timeout, context=context
-                )
-            else:
-                smtp = smtplib.SMTP(self._host, self._port, timeout=self._timeout)
-            with smtp:
-                if not self._use_ssl:
-                    smtp.starttls(context=context)
-                if self._username:
-                    smtp.login(self._username, self._password or "")
-                smtp.send_message(message)
-        except (smtplib.SMTPException, OSError) as exc:
+            self._transport.send(sign_in_message(to, self._sender, code, valid_minutes))
+        except MailDeliveryError as exc:
             raise UpstreamError(
-                "We could not send the email. Try again shortly.", reason="smtp_failed"
+                "We could not send the email. Try again shortly.", reason="mail_failed"
             ) from exc
 
 

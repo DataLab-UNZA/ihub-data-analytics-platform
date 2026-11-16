@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     ihub_auth_db_path: Path = Path("data/auth.sqlite")
     ihub_google_client_id: str | None = None
     ihub_google_client_secret: SecretStr | None = None
+    # Outgoing mail (ihub.mail): smtp, console, or a registered transport
+    ihub_mail_transport: str | None = None
     ihub_smtp_host: str | None = None
     ihub_smtp_port: int = 587
     ihub_smtp_username: str | None = None
