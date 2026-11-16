@@ -30,8 +30,10 @@ ROOT = Path(__file__).resolve().parent.parent
 #: responses would only fill the pack, the dbt models have a section of their own, and the
 #: Next.js app (web/) is documented in web/README.md.
 COLLAPSED_FOLDERS = ("tests/fixtures/", "transform/models/", "web/")
-MAX_CHARS = 33_000  # about 8,800 tokens: leaves most of a free chat for the work itself
+MAX_CHARS = 35_000  # about 9,300 tokens: leaves most of a free chat for the work itself
 REPO_URL = "https://github.com/DataLab-UNZA/ihub-data-analytics-platform"
+#: The parts of ihub.auth.api that routes use to protect themselves (ADR-010).
+AUTH_DEPENDENCIES = ("current_principal", "require")
 
 # Files bundled with the pack in the zip, next to context-pack.md.
 ZIP_EXTRAS = ["docs/STUDENT_GUIDE.md", "docs/STUDENT_PROMPTS.md"]
@@ -150,9 +152,17 @@ def interfaces() -> str:
         # A source connector is used only through the Connector interface in base.py, so
         # it shows its classes and fetch_records only; base.py is shown in full.
         brief = path.parent.name == "connectors" and path.name not in ("base.py", "__init__.py")
+        # Authentication is used through its RBAC table (rbac.py, in full) and two FastAPI
+        # dependencies (api.py: AUTH_DEPENDENCIES); its other modules show their summary
+        # line only (ADR-010 has the design).
+        in_auth = path.parent.name == "auth"
+        summary_only = in_auth and path.name not in ("__init__.py", "rbac.py", "api.py")
+        functions_only = in_auth and path.name == "api.py"
         items: list[str] = []
         plain_data: list[str] = []  # data classes with no methods: listed on one line below
-        for node in tree.body:
+        for node in [] if summary_only else tree.body:
+            if functions_only and getattr(node, "name", "") not in AUTH_DEPENDENCIES:
+                continue
             if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 if not node.name.startswith("_") and not brief:
                     items.append(f"- `{_signature(node)}`: {_first_line(node)}".rstrip(": "))
@@ -169,7 +179,7 @@ def interfaces() -> str:
                         items.append(f"  - `{_signature(sub)}`: {_first_line(sub)}".rstrip(": "))
         if plain_data:
             items.append("- data classes: " + ", ".join(plain_data))
-        if items:
+        if items or summary_only:
             rel = path.relative_to(ROOT).as_posix()
             module_doc = _first_line(tree)
             out.append(f"**`{rel}`**" + (f": {module_doc}" if module_doc else ""))

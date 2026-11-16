@@ -1,6 +1,6 @@
 # ADR-008: Staff sign in with their UNZA Google Workspace account
 
-- **Status:** Proposed
+- **Status:** Accepted; decisions 1 and 3 (Auth.js, sessions and the internal token) are superseded by [ADR-010](ADR-010-token-authentication-and-rbac.md)
 - **Date:** November 16, 2026
 - **Decided by:** (author to add), for review by Lighton Phiri
 
