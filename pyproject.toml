@@ -19,6 +19,7 @@ dependencies = [
     "certifi>=2024.2",
     "fastapi>=0.163.1",
     "uvicorn>=0.54.0",
+    "pyjwt[crypto]>=2.10",
 ]
 
 [dependency-groups]
