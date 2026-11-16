@@ -11,6 +11,8 @@ from datetime import UTC, datetime, timedelta
 from ihub.auth.errors import InvalidEmailError
 
 MIN_SECRET_BYTES = 32
+ANY_DOMAIN = "*"
+"""IHUB_ALLOWED_EMAIL_DOMAIN value that accepts every address (testing only, ADR-010)."""
 MAX_EMAIL_LENGTH = 254
 
 
@@ -48,6 +50,10 @@ class AuthConfig:
         object.__setattr__(self, "allowed_domain", self.allowed_domain.strip().lower())
 
     @property
+    def allows_any_domain(self) -> bool:
+        return self.allowed_domain == ANY_DOMAIN
+
+    @property
     def is_development(self) -> bool:
         return self.environment == "development"
 
@@ -73,7 +79,7 @@ class AuthConfig:
             and len(email) <= MAX_EMAIL_LENGTH
             and not any(char.isspace() for char in email)
         )
-        if not well_formed or domain != self.allowed_domain:
+        if not well_formed or (not self.allows_any_domain and domain != self.allowed_domain):
             raise InvalidEmailError(
                 f"Use your UNZA email address (ending @{self.allowed_domain}).",
                 reason="wrong_domain" if well_formed else "malformed_email",

@@ -118,12 +118,12 @@ class FakeGoogle:
             return httpx.Response(400, json={"error": "invalid_grant"})
         return httpx.Response(200, json={"id_token": self.id_token(**self.claims)})
 
-    def client(self) -> GoogleOAuthClient:
+    def client(self, domain: str = DOMAIN) -> GoogleOAuthClient:
         return GoogleOAuthClient(
             CLIENT_ID,
             "test-client-secret",
             f"{PUBLIC_URL}/auth/google/callback",
-            DOMAIN,
+            domain,
             http=httpx.Client(transport=httpx.MockTransport(self.token_endpoint)),
             signing_key=lambda _token: self.private_key.public_key(),
         )
@@ -159,11 +159,12 @@ def make_harness(
     with_google: bool = True,
     with_email: bool = True,
     bootstrap_admins: frozenset[str] = frozenset({ADMIN}),
+    domain: str = DOMAIN,
 ) -> Harness:
     clock = FakeClock()
     config = AuthConfig(
         secret=SECRET,
-        allowed_domain=DOMAIN,
+        allowed_domain=domain,
         environment="development",
         public_url=PUBLIC_URL,
         bootstrap_admins=bootstrap_admins,
@@ -179,7 +180,7 @@ def make_harness(
         email_codes=EmailCodeService(
             config, store.email_challenges, email if with_email else None, clock
         ),
-        google=google.client() if with_google else None,
+        google=google.client(domain) if with_google else None,
         clock=clock,
     )
     return Harness(service, store, clock, email, google, config, db_path)

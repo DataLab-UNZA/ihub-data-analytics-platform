@@ -52,6 +52,7 @@ The rules from ADR-008 still hold: only `@unza.ac.zm` accounts, no stored passwo
 6. **Secrets and keys.**
    - One secret, `IHUB_AUTH_SECRET`, at least 32 bytes. Separate keys are derived from it (HMAC-SHA256) for access tokens, OAuth flow state and email codes.
    - Further settings: `IHUB_GOOGLE_CLIENT_ID`, `IHUB_GOOGLE_CLIENT_SECRET`, `IHUB_PUBLIC_URL`, `IHUB_ALLOWED_EMAIL_DOMAIN`, `IHUB_BOOTSTRAP_ADMINS`, and `IHUB_SMTP_*`.
+   - For testing, `IHUB_ALLOWED_EMAIL_DOMAIN=*` accepts any address: any verified Google account (Gmail or any Workspace) and email codes to any address. It works only with `IHUB_ENV=development`; elsewhere the API refuses to start sign-in.
    - `IHUB_ENV` defaults to `production`. Only `IHUB_ENV=development` allows a generated, temporary secret and the console email sender.
    - If authentication is not configured, the auth routes answer `503`. The research routes are unaffected.
 7. **Storage** follows [ADR-009](ADR-009-user-store-and-staff-data.md). Users, refresh-token hashes, email-code hashes and audit events sit behind small repository interfaces.

@@ -3,8 +3,9 @@
 The API builds the authorisation URL, exchanges the code with the client secret, and
 verifies the ID token itself: signature (Google's JWKS), ``iss``, ``aud``, ``exp``,
 ``nonce``, ``email_verified``, and that both the ``hd`` claim and the email domain are the
-allowed UNZA domain. The ``hd`` request parameter only tunes Google's account chooser;
-the ``hd`` claim check is what enforces the rule.
+allowed UNZA domain. With the domain set to ``*`` (testing only) any verified Google
+account is accepted, Gmail included. The ``hd`` request parameter only tunes Google's
+account chooser; the ``hd`` claim check is what enforces the rule.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from urllib.parse import urlencode
 import httpx
 import jwt
 
+from ihub.auth.config import ANY_DOMAIN
 from ihub.auth.errors import IdentityRejectedError, InvalidRequestError, UpstreamError
 
 AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -77,10 +79,11 @@ class GoogleOAuthClient:
             "nonce": nonce,
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
-            "hd": self._domain,
             "prompt": "select_account",
             "access_type": "online",
         }
+        if self._domain != ANY_DOMAIN:
+            params["hd"] = self._domain
         return f"{AUTHORIZATION_ENDPOINT}?{urlencode(params)}"
 
     def exchange_code(self, *, code: str, code_verifier: str, nonce: str) -> GoogleIdentity:
@@ -140,7 +143,10 @@ class GoogleOAuthClient:
                 "Your Google email address is not verified.", reason="unverified_email"
             )
         email = str(claims.get("email", "")).lower()
-        if claims.get("hd") != self._domain or not email.endswith(f"@{self._domain}"):
+        wrong_domain = self._domain != ANY_DOMAIN and (
+            claims.get("hd") != self._domain or not email.endswith(f"@{self._domain}")
+        )
+        if wrong_domain:
             raise IdentityRejectedError(
                 f"Use your UNZA Google account (an @{self._domain} address).",
                 reason="wrong_domain",
