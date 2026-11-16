@@ -134,6 +134,7 @@ class PublicationRow:
     doi: str | None
     doi_url: str | None
     record_url: str | None
+    publication_key: str | None = None
 
 
 @dataclass(frozen=True)
@@ -351,7 +352,7 @@ def publications(
                 CASE WHEN f.in_openalex THEN 'OpenAlex' END,
                 CASE WHEN f.in_repository THEN 'Repository' END,
                 CASE WHEN f.in_ojs THEN 'OJS' END),
-            p.doi, p.doi_url, p.primary_record_url
+            p.doi, p.doi_url, p.primary_record_url, p.publication_key
         {_PUBLICATIONS_FROM}
         {where}
         ORDER BY f.year_key DESC, f.cited_by_count DESC, p.title, p.publication_key
@@ -372,6 +373,7 @@ def publications(
             doi=r[8],
             doi_url=r[9],
             record_url=r[10],
+            publication_key=r[11],
         )
         for r in rows
     ]

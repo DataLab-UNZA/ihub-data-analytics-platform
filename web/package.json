@@ -1,0 +1,24 @@
+{
+  "name": "ihub-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "iHub Analytics front end (Next.js, App Router, JavaScript)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ."
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "next": "^16.4.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.6"
+  }
+}

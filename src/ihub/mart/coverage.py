@@ -182,7 +182,8 @@ def missing_publications(
                 FROM marts.bridge_publication_source AS b
                 JOIN marts.dim_source_system AS s USING (source_system_key)
                 WHERE b.publication_key = f.publication_key AND s.source_system = ?
-            ) AS record_url
+            ) AS record_url,
+            p.publication_key
         {_GAP_FROM}
         ORDER BY f.year_key DESC, f.cited_by_count DESC, p.title, p.publication_key
         {paging}
@@ -202,6 +203,7 @@ def missing_publications(
             doi=r[8],
             doi_url=r[9],
             record_url=r[10],
+            publication_key=r[11],
         )
         for r in rows
     ]
