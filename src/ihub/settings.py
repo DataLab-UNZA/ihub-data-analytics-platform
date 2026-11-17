@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     ihub_allowed_email_domain: str = "unza.ac.zm"
     ihub_bootstrap_admins: str = ""
     ihub_auth_db_path: Path = Path("data/auth.sqlite")
+    # Explicitly allow the non-durable SQLite store in a production container.
+    # It is for demonstrations only: Cloud Run can erase it at any restart.
+    ihub_allow_ephemeral_auth: bool = False
     # Saved charts and dashboards (ihub.workspace)
     ihub_workspace_db_path: Path = Path("data/workspace.sqlite")
     ihub_google_client_id: str | None = None

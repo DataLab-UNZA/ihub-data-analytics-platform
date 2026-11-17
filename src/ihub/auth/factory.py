@@ -89,10 +89,6 @@ def build_auth_service(settings: Settings, *, clock: Clock = utc_now) -> AuthSer
                 "testing and only works with IHUB_ENV=development."
             )
         logger.warning("IHUB_ALLOWED_EMAIL_DOMAIN=*: any email address can sign in (testing).")
-    if not development:
-        raise AuthNotConfiguredError(
-            "Sign-in is not available yet: production needs a persistent user store (ADR-009)."
-        )
     config = AuthConfig(
         secret=secret,
         allowed_domain=settings.ihub_allowed_email_domain,
@@ -100,6 +96,11 @@ def build_auth_service(settings: Settings, *, clock: Clock = utc_now) -> AuthSer
         public_url=settings.ihub_public_url,
         bootstrap_admins=parse_email_list(settings.ihub_bootstrap_admins),
     )
+    if not development and not settings.ihub_allow_ephemeral_auth:
+        raise AuthNotConfiguredError(
+            "Sign-in is not available: production needs a persistent user store, or set "
+            "IHUB_ALLOW_EPHEMERAL_AUTH=true to use the Cloud Run instance's temporary disk."
+        )
     store = SqliteAuthStore(settings.ihub_auth_db_path)
     return AuthService(
         config,
