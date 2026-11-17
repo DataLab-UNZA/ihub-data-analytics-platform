@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { localRedirect } from '../src/lib/redirect.js';
+import { localRedirect, proxyRedirect } from '../src/lib/redirect.js';
+
+test('production proxy redirects are absolute and retain the public HTTPS host', () => {
+  const request = new Request('http://0.0.0.0:8080/', { headers: {
+    host: 'public.example', 'x-forwarded-proto': 'https',
+  } });
+  const response = proxyRedirect('/login?next=%2Faccount', request);
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get('location'), 'https://public.example/login?next=%2Faccount');
+  assert.doesNotThrow(() => new URL(response.headers.get('location')));
+});
 
 test('OTP redirect stays on the browser origin and supports session cookies', () => {
   const response = localRedirect('/verify-code');
