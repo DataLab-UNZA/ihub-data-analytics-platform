@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { localRedirect } from '@/lib/redirect';
 import { apiPost } from '@/lib/api';
 import { FLOW_COOKIE, safeNext, setFlash, setTokens } from '@/lib/session';
 
@@ -11,7 +11,7 @@ export async function GET(request) {
   const params = new URL(request.url).searchParams;
   const flow = request.cookies.get(FLOW_COOKIE)?.value;
   const fail = (message) => {
-    const response = NextResponse.redirect(new URL('/login', request.url), 303);
+    const response = localRedirect('/login');
     response.cookies.delete({ name: FLOW_COOKIE, path: '/auth/google' });
     setFlash(response, request, message);
     return response;
@@ -30,7 +30,7 @@ export async function GET(request) {
   if (!result.ok) {
     return fail(result.data?.detail ?? 'Google sign-in failed. Start again.');
   }
-  const response = NextResponse.redirect(new URL(safeNext(result.data.next), request.url), 303);
+  const response = localRedirect(safeNext(result.data.next));
   response.cookies.delete({ name: FLOW_COOKIE, path: '/auth/google' });
   setTokens(response, request, result.data);
   return response;

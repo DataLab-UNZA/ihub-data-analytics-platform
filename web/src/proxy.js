@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { localRedirect } from '@/lib/redirect';
 import {
   ACCESS_COOKIE,
   DEFAULT_NEXT,
@@ -55,14 +56,14 @@ function toLogin(request) {
   if (pathname !== '/' && pathname !== DEFAULT_NEXT) {
     url.searchParams.set('next', `${pathname}${search}`);
   }
-  return NextResponse.redirect(url);
+  return localRedirect(`${url.pathname}${url.search}`, 307);
 }
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   if (pathname === '/' && !showScreenIndex()) {
-    return NextResponse.redirect(new URL(DEFAULT_NEXT, request.url));
+    return localRedirect(DEFAULT_NEXT, 307);
   }
   if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next();
@@ -71,7 +72,7 @@ export async function proxy(request) {
     // A code may have been requested just before the setting changed or on a revision
     // that has not restarted yet. Let the code screen read its pending cookie; without
     // one it redirects safely through /login to the public overview.
-    return pathname === '/login' ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url)) : NextResponse.next();
+    return pathname === '/login' ? localRedirect(DEFAULT_NEXT, 307) : NextResponse.next();
   }
 
   const access = request.cookies.get(ACCESS_COOKIE)?.value;
@@ -79,13 +80,13 @@ export async function proxy(request) {
   const accessValid = Boolean(access) && secondsLeft(access) > REFRESH_MARGIN_SECONDS;
 
   if (accessValid) {
-    return isSignInPage(pathname) ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url)) : NextResponse.next();
+    return isSignInPage(pathname) ? localRedirect(DEFAULT_NEXT, 307) : NextResponse.next();
   }
   if (refresh) {
     const tokens = await refreshTokens(refresh);
     if (tokens) {
       const response = isSignInPage(pathname)
-        ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url))
+        ? localRedirect(DEFAULT_NEXT, 307)
         : NextResponse.next();
       setTokens(response, request, tokens);
       return response;
