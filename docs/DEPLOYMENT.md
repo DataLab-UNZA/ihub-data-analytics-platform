@@ -50,14 +50,15 @@ The Google Cloud resources were created once with [`scripts/gcp_setup.sh`](../sc
 
 ## Sign-in (ADR-010)
 
-Production runs with `IHUB_REQUIRE_SIGN_IN=false` on both containers (`deploy/service.yaml`) until the persistent user
-store (Firestore, ADR-009) exists: Cloud Run's disk is temporary, so accounts would vanish. To switch sign-in on later:
+Production requires sign-in. The current deployment uses an **instance-local SQLite account store** in `/tmp/ihub-auth.sqlite`, so it needs no Firestore account or Cloud project change. This is suitable for demonstrations only: every account, profile photo, email code and session disappears whenever Cloud Run stops, restarts, scales to zero or deploys a new revision. The app is limited to one instance, so users do not receive different account stores simultaneously.
+
+For durable real accounts, replace the temporary store with Firestore before relying on it operationally:
 
 1. Create the Firestore store (ADR-009) and give `GCP_RUNTIME_SA` the `roles/datastore.user` role.
 2. Add the sign-in secrets and variables in GitHub (table above). The next deploy passes them to the `api`
    container. (Secret Manager, mounted on the `api` container, is the stronger alternative from ADR-008.)
 3. In the Google Cloud console, list `<service URL>/auth/google/callback` as an authorised redirect URI of the OAuth client.
-4. Remove `IHUB_REQUIRE_SIGN_IN` from both containers.
+4. Remove `IHUB_ALLOW_EPHEMERAL_AUTH` and use the Firestore-backed store.
 
 Never put the secret values in GitHub variables, the repository or workflow logs: only in environment secrets.
 
@@ -116,4 +117,4 @@ One Cloud Run service, `ihub-app`, with two containers in each instance ([ADR-00
 | `web` | `ihub/web` (`web/Dockerfile`) | 8080, receives all traffic | Next.js front end; calls the API at `http://127.0.0.1:8000` from the server only |
 | `api` | `ihub/api` (`Dockerfile.api`) | 8000, localhost only | FastAPI research API over the DuckDB file built into the image |
 
-`web` starts once `api` passes its startup probe (`/api/health`). The API is never reachable from the internet. In production the design-only screens (mock sign-in, screen index) redirect to `/overview` until staff sign-in exists ([ADR-008](decisions/ADR-008-staff-sign-in-with-google.md)); `IHUB_SHOW_PREVIEWS=true` shows them locally.
+`web` starts once `api` passes its startup probe (`/api/health`). The API is never reachable from the internet. The design-only screen index redirects to `/overview` in production; `IHUB_SHOW_PREVIEWS=true` shows it locally.
