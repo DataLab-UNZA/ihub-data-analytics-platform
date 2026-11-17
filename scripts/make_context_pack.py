@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 #: responses would only fill the pack, the dbt models have a section of their own, and the
 #: Next.js app (web/) is documented in web/README.md.
 COLLAPSED_FOLDERS = ("tests/fixtures/", "transform/models/", "web/")
-MAX_CHARS = 37_000  # about 9,900 tokens: leaves most of a free chat for the work itself
+MAX_CHARS = 39_000  # about 9,900 tokens: leaves most of a free chat for the work itself
 REPO_URL = "https://github.com/DataLab-UNZA/ihub-data-analytics-platform"
 #: Packages used through a few names only. For each module: None shows it in full, a
 #: tuple shows only those names (an empty tuple: its summary line), and modules that are

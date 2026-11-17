@@ -270,3 +270,27 @@ def school_credit(
     _, result = linked
     pairs = staff_links.author_publications(db_path, list(result.links), years)
     return aggregate(result, pairs, years, total_publications)
+
+
+def school_publications(
+    db_path: Path, roster_path: Path, years: YearRange
+) -> dict[str, frozenset[str]] | None:
+    """Return, per roster school, the publication keys behind its ``roster_publications`` count.
+
+    Every school on the roster is listed, with an empty set when it has no publication in
+    ``years``. Returns None when there is no roster. Publication keys are not personal data;
+    no name or staff ID is returned.
+    """
+    linked = linked_authors(db_path, roster_path)
+    if linked is None:
+        return None
+    _, result = linked
+    pairs = staff_links.author_publications(db_path, list(result.links), years)
+    found: dict[str, set[str]] = {school: set() for school in result.staff_by_school}
+    for author, publication in pairs:
+        link = result.links.get(author)
+        if link is None or link.basis not in ROSTER_BASES:
+            continue
+        for school in link.schools:
+            found.setdefault(school, set()).add(publication)
+    return {school: frozenset(keys) for school, keys in found.items()}

@@ -2,6 +2,7 @@ import { apiGet } from '@/lib/api';
 import { countryName, mapPosition } from '@/lib/countries';
 import { yearParams } from '@/lib/filters-server';
 import { capitalise, formatNumber, formatShare } from '@/lib/format';
+import { sourceCounts } from '@/lib/sources';
 
 const TONES = [undefined, 'teal', 'blue'];
 const tone = (index) => TONES[index % TONES.length];
@@ -134,6 +135,10 @@ export async function loadSources() {
   };
 }
 
+/** Unit names the data service uses for the publications no school is credited with. */
+const NOT_CREDITED = 'Not credited to a school';
+const UNASSIGNED = 'Unassigned department';
+
 const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
 /** School credit from the staff roster (ADR-012), shaped for the screen. School-level numbers only. */
@@ -174,7 +179,7 @@ function creditView(credit) {
 }
 
 /** Tree of the university and its schools, credited through the staff roster. */
-function rosterTree(credit, total) {
+function rosterTree(credit, total, sources) {
   const view = creditView(credit);
   const first = Math.max(0, credit.schools.findIndex((school) => school.roster_publications > 0));
   const schools = credit.schools.map((school, index) => ({
@@ -182,6 +187,9 @@ function rosterTree(credit, total) {
     name: school.school,
     kind: 'Unit',
     outputs: formatNumber(school.roster_publications),
+    count: school.roster_publications,
+    unit: school.school,
+    sources: sourceCounts(sources.sources, sources.by_unit[school.school]),
     childrenLabel: `${formatNumber(school.roster_authors)} authors matched`,
     selected: index === first,
     details: [
@@ -196,6 +204,10 @@ function rosterTree(credit, total) {
     name: 'Not credited to a school',
     kind: 'Unit',
     outputs: formatNumber(uncredited),
+    count: uncredited,
+    inPie: false, // the rest of the corpus, not a unit: it would dwarf every school
+    unit: NOT_CREDITED,
+    sources: sourceCounts(sources.sources, sources.by_unit[NOT_CREDITED]),
     childrenLabel: 'no author on the staff roster',
     details: [['Publications with no roster-linked school', formatNumber(uncredited)]],
   });
@@ -204,6 +216,9 @@ function rosterTree(credit, total) {
     name: 'University of Zambia',
     kind: 'Organisation',
     outputs: formatNumber(total),
+    count: total,
+    unit: null,
+    sources: sourceCounts(sources.sources, sources.all),
     childrenLabel: `${credit.schools.length} units`,
     expanded: true,
     details: [
@@ -215,7 +230,7 @@ function rosterTree(credit, total) {
 }
 
 /** Tree of the university and its schools from department evidence (used when there is no roster). */
-function departmentTree(data) {
+function departmentTree(data, sources) {
   const unitsBySchool = new Map();
   for (const unit of data.units) {
     const key = unit.school ?? unit.name;
@@ -231,6 +246,9 @@ function departmentTree(data) {
         name: unit.name,
         kind: capitalise(unit.unit_type),
         outputs: formatNumber(unit.publications),
+        count: unit.publications,
+        unit: school.school, // lists exist per school, so a department links to its school
+        sources: null,
         childrenLabel: '0 units',
       }));
     return {
@@ -238,6 +256,10 @@ function departmentTree(data) {
       name: school.school,
       kind: 'Unit',
       outputs: formatNumber(school.publications),
+      count: school.publications,
+      inPie: school.school !== UNASSIGNED,
+      unit: school.school,
+      sources: sourceCounts(sources.sources, sources.by_unit[school.school]),
       childrenLabel: `${children.length} unit${children.length === 1 ? '' : 's'}`,
       expanded: index === defaultIndex,
       selected: index === defaultIndex,
@@ -249,6 +271,9 @@ function departmentTree(data) {
     name: 'University of Zambia',
     kind: 'Organisation',
     outputs: formatNumber(data.total_publications),
+    count: data.total_publications,
+    unit: null,
+    sources: sourceCounts(sources.sources, sources.all),
     childrenLabel: `${schools.length} units`,
     expanded: true,
     children: schools,
@@ -262,7 +287,8 @@ function departmentTree(data) {
 export async function loadOrganisation(filters) {
   const data = await apiGet('/api/organisation', yearParams(filters));
   const credit = data.school_credit ?? null;
-  const tree = credit ? rosterTree(credit, data.total_publications) : departmentTree(data);
+  const sources = data.unit_sources;
+  const tree = credit ? rosterTree(credit, data.total_publications, sources) : departmentTree(data, sources);
   return {
     years: data.years,
     tree,
