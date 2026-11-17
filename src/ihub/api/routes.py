@@ -14,6 +14,7 @@ from fastapi.responses import Response
 from ihub.mart import coverage, insights, research
 from ihub.mart.research import PublicationFilter, YearRange
 from ihub.mart.status import last_pipeline_run
+from ihub.staff import attribution
 
 MAX_PAGE_SIZE = 100
 PREVIEW_ROWS = 10
@@ -39,6 +40,7 @@ def build_router(
     *,
     read: Sequence[Any] = (),
     export: Sequence[Any] = (),
+    staff_roster_path: Callable[[], Path | None] | None = None,
 ) -> APIRouter:
     """Create the router; ``database_path`` is called per request so tests can swap the file.
 
@@ -47,6 +49,28 @@ def build_router(
     ``require(research:read)`` and ``require(research:export)`` when sign-in is required.
     """
     router = APIRouter(prefix="/api")
+
+    def school_credit(db: Path, years: YearRange, total_publications: int) -> dict[str, Any] | None:
+        """Schools credited through the private staff roster (ADR-012), or None without one.
+
+        The payload holds school-level numbers and match statistics only: never a name, a staff
+        ID or a per-person result.
+        """
+        roster = staff_roster_path() if staff_roster_path else None
+        if roster is None:
+            return None
+        report = attribution.school_credit(db, roster, years, total_publications)
+        if report is None:
+            return None
+        return {
+            "source": "staff_roster",
+            "total_publications": report.total_publications,
+            "credited_by_roster": report.credited_by_roster,
+            "credited_any": report.credited_any,
+            "schools": [asdict(school) for school in report.schools],
+            "stats": asdict(report.stats),
+        }
+
     data = APIRouter(dependencies=list(read))
 
     def years_from(start: int | None, end: int | None) -> YearRange:
@@ -104,6 +128,7 @@ def build_router(
             ],
             "top_venues": [asdict(v) for v in research.top_venues(db, years, limit=5)],
             "schools": [asdict(s) for s in insights.school_outputs(db, years)],
+            "school_credit": school_credit(db, years, current.publications),
             "collaboration": {
                 "summary": asdict(insights.collaboration_summary(db, years)),
                 "countries": [asdict(c) for c in insights.top_countries(db, years, limit=8)],
@@ -209,10 +234,12 @@ def build_router(
         """Output per school and per UNZA unit for a period."""
         db = database_path()
         years = years_from(start, end)
+        total = research.headline_counts(db, years).publications
         return {
             "years": asdict(years),
-            "total_publications": research.headline_counts(db, years).publications,
+            "total_publications": total,
             "schools": [asdict(s) for s in insights.school_outputs(db, years)],
+            "school_credit": school_credit(db, years, total),
             "units": [asdict(u) for u in insights.unit_outputs(db, years)],
         }
 

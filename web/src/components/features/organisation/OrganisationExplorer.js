@@ -50,7 +50,7 @@ function TreeNode({ node, expanded, selectedId, onToggle, onSelect }) {
         >
           <span className="tree__name">{node.name}</span>
           <span className="tree__meta">
-            {node.kind} · {node.outputs} outputs
+            {node.kind} · {node.outputs} publications
           </span>
         </button>
       </div>
@@ -122,9 +122,20 @@ export default function OrganisationExplorer({ tree, subtitle, children }) {
         <Card aria-labelledby="selected-title" aria-live="polite">
           <CardHeader id="selected-title" title="Selected unit" subtitle={selected.name} className="mb-40" />
           <p className={cx('big-figure', 'big-figure--xl')}>{selected.outputs}</p>
-          <p className="text-muted mt-16">outputs · {selected.childrenLabel}</p>
-          <p className="meta-label mt-32">Head of unit</p>
-          <p className="text-md fw-500 mt-8">Visible to authorised roles</p>
+          <p className="text-muted mt-16">publications · {selected.childrenLabel}</p>
+          {selected.details ? (
+            selected.details.map(([label, value]) => (
+              <div key={label}>
+                <p className="meta-label mt-24">{label}</p>
+                <p className="text-md fw-500 mt-8">{value}</p>
+              </div>
+            ))
+          ) : (
+            <>
+              <p className="meta-label mt-32">Head of unit</p>
+              <p className="text-md fw-500 mt-8">Visible to authorised roles</p>
+            </>
+          )}
           <p className="mt-48 mb-24">
             <Link href="/publications">View publications →</Link>
           </p>

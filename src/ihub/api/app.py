@@ -66,13 +66,16 @@ def create_app(
     *,
     require_sign_in: bool | None = None,
     workspace_service: WorkspaceProvider | None = None,
+    staff_roster_path: Callable[[], Path | None] | None = None,
 ) -> FastAPI:
     """Build the app.
 
     ``database_path`` returns the DuckDB file to read (settings by default);
     ``auth_service`` returns the authentication service (built from settings by default);
     ``require_sign_in`` protects the research routes with RBAC (``IHUB_REQUIRE_SIGN_IN``
-    by default, which is on unless set to false).
+    by default, which is on unless set to false);
+    ``staff_roster_path`` returns the private roster used to credit schools (ADR-012; the
+    ``IHUB_STAFF_ROSTER_PATH`` setting by default, and the file need not exist).
     """
     if require_sign_in is None:
         require_sign_in = get_settings().ihub_require_sign_in
@@ -103,11 +106,13 @@ def create_app(
         return JSONResponse(status_code=400, content={"detail": str(exc)})
 
     guarded = require_sign_in
+    roster_path = staff_roster_path or (lambda: get_settings().ihub_staff_roster_path)
     app.include_router(
         build_router(
             database_path or (lambda: get_settings().ihub_duckdb_path),
             read=[Depends(require(Permission.RESEARCH_READ))] if guarded else [],
             export=[Depends(require(Permission.RESEARCH_EXPORT))] if guarded else [],
+            staff_roster_path=roster_path,
         )
     )
     app.include_router(
