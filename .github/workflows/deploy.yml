@@ -152,7 +152,7 @@ jobs:
         run: |
           url="${{ steps.deploy.outputs.url }}"
           for _ in 1 2 3 4 5 6; do
-            if curl -fsS "$url/healthz" && curl -fsS -o /dev/null "$url/overview"; then
+            if curl -fsS "$url/health/ready" && curl -fsSL -o /dev/null "$url/overview"; then
               echo; echo "Live at $url" >> "$GITHUB_STEP_SUMMARY"
               echo "Commit \`$REF\`" >> "$GITHUB_STEP_SUMMARY"
               exit 0
