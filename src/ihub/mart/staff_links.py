@@ -29,6 +29,16 @@ def unza_authors(db_path: Path) -> list[tuple[str, str]]:
     return [(str(key), str(name)) for key, name in rows]
 
 
+def author_identifiers(db_path: Path) -> list[tuple[str, str | None, str | None]]:
+    """Return ``(author_key, openalex_author_id, orcid_id)`` for every UNZA author."""
+    rows = fetch(
+        db_path,
+        "SELECT author_key, openalex_author_id, orcid_id FROM marts.dim_author "
+        "WHERE is_unza_author ORDER BY author_key",
+    )
+    return [(str(key), openalex, orcid) for key, openalex, orcid in rows]
+
+
 def author_department_schools(db_path: Path) -> dict[str, frozenset[str]]:
     """Return, per author, the schools of the departments the pipeline found for that author.
 

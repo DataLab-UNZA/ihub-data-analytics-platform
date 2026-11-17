@@ -61,6 +61,8 @@ class StaffMember:
     surname: frozenset[str]
     words: frozenset[str]  # every whole word of the name, surname included
     initials: frozenset[str]  # initials written as such, and the first letters of given names
+    title: str = ""  # "Dr", "Prof", ... as written in the roster (empty when blank)
+    display_name: str = ""  # "Chanda Banda": given names then surname, in capitals and lower case
 
     @property
     def has_name(self) -> bool:
@@ -80,6 +82,13 @@ class Roster:
         return len(self.members)
 
 
+def display_name(row: dict[str, str]) -> str:
+    """Return the person's name for display: given names, then the surname, in title case."""
+    parts = [row.get("First Name"), row.get("Second Name"), row.get("Surname")]
+    words = [word for part in parts if part for word in part.split() if not word.isdigit()]
+    return " ".join(word.title() for word in words)
+
+
 def _member(row: dict[str, str]) -> StaffMember | None:
     surname = name_words(row.get("Surname"))
     given = name_words(row.get("First Name")) + name_words(row.get("Second Name"))
@@ -95,6 +104,8 @@ def _member(row: dict[str, str]) -> StaffMember | None:
         surname=frozenset(word for word in surname if len(word) > 1),
         words=words,
         initials=initials,
+        title=" ".join((row.get("Title") or "").split()),
+        display_name=display_name(row),
     )
 
 

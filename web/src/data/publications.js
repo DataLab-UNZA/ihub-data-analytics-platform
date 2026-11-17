@@ -46,7 +46,7 @@ export const searchResults = [
     id: 4,
     kind: 'Member · authorised',
     title: 'Chanda Banda',
-    href: '/members/chanda-banda',
+    href: '/members',
     meta: 'Public Health · ORCID linked',
   },
 ];

@@ -19,6 +19,7 @@ class Permission(StrEnum):
     REPORTS_MANAGE = "reports:manage"
     QUALITY_REVIEW = "quality:review"
     SOURCES_MANAGE = "sources:manage"
+    MEMBERS_READ = "members:read"  # named staff and their publications (ADR-014)
     USERS_MANAGE = "users:manage"
 
 
@@ -38,14 +39,15 @@ DEFAULT_ROLE = Role.MEMBER
 
 _READ = frozenset({Permission.RESEARCH_READ})
 _ANALYSE = _READ | {Permission.RESEARCH_EXPORT, Permission.REPORTS_MANAGE}
+_LEADERSHIP = _ANALYSE | {Permission.MEMBERS_READ}
 
 ROLE_PERMISSIONS: Mapping[Role, frozenset[Permission]] = MappingProxyType(
     {
         Role.MEMBER: _READ,
         Role.ANALYST: _ANALYSE,
         Role.LIBRARIAN: _READ | {Permission.RESEARCH_EXPORT, Permission.QUALITY_REVIEW},
-        Role.UNIT_HEAD: _ANALYSE,
-        Role.EXECUTIVE: _ANALYSE,
+        Role.UNIT_HEAD: _LEADERSHIP,
+        Role.EXECUTIVE: _LEADERSHIP,
         Role.ADMIN: frozenset(Permission),
     }
 )
