@@ -68,7 +68,10 @@ export async function proxy(request) {
     return NextResponse.next();
   }
   if (!signInRequired()) {
-    return isSignInPage(pathname) ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url)) : NextResponse.next();
+    // A code may have been requested just before the setting changed or on a revision
+    // that has not restarted yet. Let the code screen read its pending cookie; without
+    // one it redirects safely through /login to the public overview.
+    return pathname === '/login' ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url)) : NextResponse.next();
   }
 
   const access = request.cookies.get(ACCESS_COOKIE)?.value;
