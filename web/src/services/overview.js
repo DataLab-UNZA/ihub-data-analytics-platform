@@ -51,8 +51,13 @@ export async function loadOverview(filters) {
   const series = data.per_year.map((row) => ({ label: String(row.year), value: row.publications }));
   const scale = niceScale(Math.max(...series.map((point) => point.value), 0));
 
-  const topSchool = data.schools[0]?.publications ?? 1;
-  const schools = data.schools.slice(0, 5).map((school, index) => ({
+  // With the staff roster (ADR-012) schools are credited through their authors; without it, by department.
+  const credit = data.school_credit;
+  const schoolRows = credit
+    ? credit.schools.map((school) => ({ school: school.school, publications: school.roster_publications }))
+    : data.schools;
+  const topSchool = schoolRows[0]?.publications || 1;
+  const schools = schoolRows.slice(0, 5).map((school, index) => ({
     label: school.school,
     value: school.publications,
     tone: SCHOOL_TONES[index],
@@ -88,7 +93,8 @@ export async function loadOverview(filters) {
     scale,
     schools,
     schoolMax: topSchool,
-    schoolCount: data.schools.length,
+    schoolCount: schoolRows.length,
+    schoolsFromRoster: Boolean(credit),
     venues,
     pins,
     topPartner: topPartner

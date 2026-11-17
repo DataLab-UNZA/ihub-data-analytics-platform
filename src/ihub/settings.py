@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     # Storage
     ihub_data_dir: Path = Path("data")
     ihub_duckdb_path: Path = Path("data/ihub.duckdb")
+    # Private HR roster used to credit schools (ADR-012). Git-ignored; absent in production.
+    ihub_staff_roster_path: Path = Path("data/private/staff_roster.csv")
 
     # OpenAlex
     openalex_mailto: str | None = None
