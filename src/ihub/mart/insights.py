@@ -224,7 +224,7 @@ def fields_with_topics(
     return result
 
 
-_UNIT_LABEL = f"""
+UNIT_LABEL_SQL = f"""
     CASE
         WHEN o.org_type = 'unassigned' THEN '{UNASSIGNED_UNIT}'
         ELSE coalesce(o.school_name, o.org_name)
@@ -240,7 +240,7 @@ def school_outputs(db_path: Path, years: YearRange) -> list[SchoolOutput]:
     rows = fetch(
         db_path,
         f"""
-        SELECT {_UNIT_LABEL} AS school, count(DISTINCT a.publication_key) AS publications
+        SELECT {UNIT_LABEL_SQL} AS school, count(DISTINCT a.publication_key) AS publications
         FROM marts.fact_authorship AS a
         JOIN marts.dim_org AS o USING (org_key)
         WHERE o.org_kind = 'unza_unit' AND a.year_key BETWEEN ? AND ?
@@ -382,7 +382,7 @@ def publication_detail(db_path: Path, publication_key: str) -> PublicationDetail
     units = fetch(
         db_path,
         f"""
-        SELECT DISTINCT {_UNIT_LABEL} AS unit
+        SELECT DISTINCT {UNIT_LABEL_SQL} AS unit
         FROM marts.fact_authorship AS a
         JOIN marts.dim_org AS o USING (org_key)
         WHERE a.publication_key = ? AND o.org_kind = 'unza_unit'
@@ -410,6 +410,7 @@ def publication_detail(db_path: Path, publication_key: str) -> PublicationDetail
 __all__ = [
     "THEME_LEVELS",
     "UNASSIGNED_UNIT",
+    "UNIT_LABEL_SQL",
     "AuthorCredit",
     "CollaborationSummary",
     "CountryCount",

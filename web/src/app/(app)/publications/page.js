@@ -2,6 +2,7 @@ import Link from 'next/link';
 import PageHeader from '@/components/layout/PageHeader';
 import Button from '@/components/ui/Button';
 import Card, { CardHeader } from '@/components/ui/Card';
+import CountList from '@/components/ui/CountList';
 import DataTable from '@/components/ui/DataTable';
 import { SelectLink } from '@/components/ui/Form';
 import Grid from '@/components/ui/Grid';
@@ -9,7 +10,7 @@ import LinkList from '@/components/ui/LinkList';
 import Pager from '@/components/ui/Pager';
 import { readFilters } from '@/lib/filters-server';
 import { formatNumber } from '@/lib/format';
-import { buildQuery, loadPublications, pageHref, pageWindow, readToolbar, toTableRows } from '@/services/publications';
+import { ALL_UNITS, loadPublications, pageHref, pageWindow, readToolbar, toTableRows } from '@/services/publications';
 import { savedSearches } from '@/data/publications';
 import { currentUser } from '@/lib/api';
 import { can } from '@/lib/permissions';
@@ -38,7 +39,7 @@ export default async function PublicationsPage({ searchParams }) {
   const filters = await readFilters();
   const [data, user] = await Promise.all([loadPublications(filters, toolbar), currentUser()]);
   const canExport = can(user, 'research:export'); // the API checks this too
-  const exportQuery = new URLSearchParams(buildQuery(filters, toolbar)).toString();
+  const exportQuery = new URLSearchParams(data.query).toString();
   const from = (data.page - 1) * data.page_size + 1;
   const to = from + data.rows.length - 1;
 
@@ -50,10 +51,21 @@ export default async function PublicationsPage({ searchParams }) {
         <CardHeader
           id="explore-title"
           title={`Explore ${formatNumber(data.total)} publications`}
-          subtitle="All known publications across connected sources · duplicates merged"
+          subtitle={
+            data.unit
+              ? `${data.unit} · duplicates merged`
+              : 'All known publications across connected sources · duplicates merged'
+          }
           className="mb-20"
         />
+        {data.unit && (
+          <p className="scope-note">
+            Showing only {data.unit}.{' '}
+            <Link href={pageHref({ ...toolbar, unit: ALL_UNITS }, 1)}>Show all units</Link>
+          </p>
+        )}
         <form className="toolbar" role="search" action="/publications" method="get" aria-label="Search publications">
+          {toolbar.unit && <input type="hidden" name="unit" value={toolbar.unit} />}
           <label className="sr-only" htmlFor="pub-search">
             Search title or DOI
           </label>
@@ -96,6 +108,20 @@ export default async function PublicationsPage({ searchParams }) {
             </Button>
           </div>
         </form>
+        <div className="breakdown">
+          <div>
+            <p className="meta-label">By type</p>
+            {data.breakdown.types.length ? (
+              <CountList items={data.breakdown.types} label="Publications by type" />
+            ) : (
+              <p className="text-muted text-xs">No publications</p>
+            )}
+          </div>
+          <div>
+            <p className="meta-label">By source</p>
+            <CountList items={data.breakdown.sources} label="Publications by source" />
+          </div>
+        </div>
       </Card>
 
       <Grid variant="wide-narrow" start>
@@ -106,7 +132,9 @@ export default async function PublicationsPage({ searchParams }) {
             subtitle="Select a title to see its authors, sources and how the records were matched"
           />
           {data.rows.length === 0 ? (
-            <p className="text-muted">No publications match these filters.</p>
+            <p className="text-muted">
+              {data.unit ? `No publications for ${data.unit} match these filters.` : 'No publications match these filters.'}
+            </p>
           ) : (
             <DataTable
               id="publication-table"

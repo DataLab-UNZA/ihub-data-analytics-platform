@@ -2576,3 +2576,97 @@ a.bar-list__label {
 .dash-card__edit { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .dash-card__body { flex: 1; min-height: 0; }
 .dash-card__body .ant-spin-nested-loading, .dash-card__body .ant-spin-container { height: 100%; }
+
+/* Unit search, unit pie and count lists (Organisation and Publications) */
+.tree__search {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.tree__search-status {
+  min-height: 18px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pie-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+  margin-top: 12px;
+}
+
+.pie-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  text-align: left;
+}
+
+.pie-legend__item:hover,
+.pie-legend__item.is-selected {
+  background: var(--accent-tint);
+}
+
+.pie-legend__item.is-selected .pie-legend__name {
+  font-weight: 600;
+}
+
+.pie-legend__swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+}
+
+.pie-legend__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pie-legend__value {
+  flex: none;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.count-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.count-list__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--divider);
+  font-size: 13px;
+}
+
+.count-list__row dd {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px 48px;
+  margin-top: 24px;
+}
+
+.scope-note {
+  margin-bottom: 16px;
+  font-size: 13px;
+}

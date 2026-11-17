@@ -13,9 +13,17 @@ export function yearParams(filters) {
   return /^\d{4}$/.test(filters.period) ? { start: filters.period, end: filters.period } : {};
 }
 
-/** API query parameters for the publication list: period, source and type. */
+/** True when the Unit filter names a real unit ("organisation" means all of UNZA). */
+export function hasUnit(filters) {
+  return Boolean(filters.unit) && filters.unit !== 'organisation';
+}
+
+/** API query parameters for the publication list: period, unit, source and type. */
 export function publicationParams(filters) {
   const params = { ...yearParams(filters) };
+  if (hasUnit(filters)) {
+    params.unit = filters.unit;
+  }
   if (SOURCE_NAMES[filters.source]) {
     params.source = SOURCE_NAMES[filters.source];
   }
