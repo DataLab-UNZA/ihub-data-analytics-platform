@@ -1,50 +1,104 @@
 import { NextResponse } from 'next/server';
+import {
+  ACCESS_COOKIE,
+  DEFAULT_NEXT,
+  REFRESH_COOKIE,
+  clearSession,
+  secondsLeft,
+  setTokens,
+  signInRequired,
+} from '@/lib/session';
 
 /**
- * Hides the design-only screens in production until staff sign-in exists (ADR-007, ADR-008).
+ * Runs before every page (ADR-010):
  *
- * The sign-in screens only mirror the supplied designs: their form would put a typed password
- * in the URL, so they must not be reachable on the public site. The developer screen index at
- * "/" is hidden too, and "/" opens the overview instead. Set IHUB_SHOW_PREVIEWS=true (the
- * default for `npm run dev`) to see every screen.
+ * 1. Signed-out visitors are sent to /login, which brings them back afterwards.
+ * 2. When the access token has expired (15 minutes) but the refresh token is valid, the
+ *    proxy refreshes both silently. The new cookies reach the page in the same request.
+ * 3. Signed-in visitors skip /login and /verify-code.
+ * 4. The developer screen index at "/" opens the overview in production.
+ *
+ * With IHUB_REQUIRE_SIGN_IN=false (production until ADR-009's store exists) pages stay
+ * open and the sign-in screens send visitors to the overview.
  */
-const DESIGN_ONLY_PATHS = [
-  '/login',
-  '/forgot-password',
-  '/create-password',
-  '/verify-code',
-  '/accept-invitation',
-  '/choose-workspace',
-];
+const SIGN_IN_PAGES = ['/login', '/verify-code'];
+const PUBLIC_PREFIXES = ['/auth/', '/healthz', '/foundations'];
+const API_URL = (process.env.IHUB_API_URL ?? 'http://127.0.0.1:8000').replace(/\/$/, '');
+const REFRESH_MARGIN_SECONDS = 30;
 
-function previewsShown() {
+function isSignInPage(pathname) {
+  return SIGN_IN_PAGES.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
+function showScreenIndex() {
   const flag = process.env.IHUB_SHOW_PREVIEWS;
-  if (flag !== undefined) return flag === 'true';
-  return process.env.NODE_ENV !== 'production';
+  return flag === undefined ? process.env.NODE_ENV !== 'production' : flag === 'true';
 }
 
-function isDesignOnly(pathname) {
-  return DESIGN_ONLY_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
-}
-
-export function proxy(request) {
-  if (previewsShown()) return undefined;
-
-  const { pathname } = request.nextUrl;
-  if (pathname === '/' || isDesignOnly(pathname)) {
-    return NextResponse.redirect(new URL('/overview', request.url));
+async function refreshTokens(refreshToken) {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      cache: 'no-store',
+    });
+    return response.ok ? response.json() : null;
+  } catch {
+    return null;
   }
-  return undefined;
+}
+
+function toLogin(request) {
+  const url = new URL('/login', request.url);
+  const { pathname, search } = request.nextUrl;
+  if (pathname !== '/' && pathname !== DEFAULT_NEXT) {
+    url.searchParams.set('next', `${pathname}${search}`);
+  }
+  return NextResponse.redirect(url);
+}
+
+export async function proxy(request) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname === '/' && !showScreenIndex()) {
+    return NextResponse.redirect(new URL(DEFAULT_NEXT, request.url));
+  }
+  if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return NextResponse.next();
+  }
+  if (!signInRequired()) {
+    return isSignInPage(pathname) ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url)) : NextResponse.next();
+  }
+
+  const access = request.cookies.get(ACCESS_COOKIE)?.value;
+  const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
+  const accessValid = Boolean(access) && secondsLeft(access) > REFRESH_MARGIN_SECONDS;
+
+  if (accessValid) {
+    return isSignInPage(pathname) ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url)) : NextResponse.next();
+  }
+  if (refresh) {
+    const tokens = await refreshTokens(refresh);
+    if (tokens) {
+      const response = isSignInPage(pathname)
+        ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url))
+        : NextResponse.next();
+      setTokens(response, request, tokens);
+      return response;
+    }
+  }
+  if (isSignInPage(pathname)) {
+    return NextResponse.next();
+  }
+  const response = toLogin(request);
+  if (access || refresh) {
+    clearSession(response); // expired or revoked: start clean
+  }
+  return response;
 }
 
 export const config = {
-  matcher: [
-    '/',
-    '/login/:path*',
-    '/forgot-password/:path*',
-    '/create-password/:path*',
-    '/verify-code/:path*',
-    '/accept-invitation/:path*',
-    '/choose-workspace/:path*',
-  ],
+  // Every page and route except Next.js assets and static files.
+  matcher: ['/((?!_next/static|_next/image|img/|favicon.ico).*)'],
 };

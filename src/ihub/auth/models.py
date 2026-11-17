@@ -6,7 +6,7 @@ tokens and email codes are stored only as hashes.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 
@@ -38,6 +38,8 @@ class User:
     status: UserStatus
     created_at: datetime
     last_sign_in_at: datetime | None = None
+    phone: str | None = None
+    avatar_updated_at: datetime | None = None
 
     @property
     def is_active(self) -> bool:
@@ -89,6 +91,15 @@ class EmailChallenge:
     expires_at: datetime
     attempts: int = 0
     consumed_at: datetime | None = None
+
+
+@dataclass(frozen=True)
+class Avatar:
+    """A profile photo: checked image bytes and their media type."""
+
+    content_type: str
+    data: bytes = field(repr=False)
+    updated_at: datetime | None = None
 
 
 @dataclass(frozen=True)

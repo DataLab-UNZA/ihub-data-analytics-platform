@@ -1,5 +1,4 @@
-import Sidebar from '@/components/layout/Sidebar';
-import Topbar from '@/components/layout/Topbar';
+import Header from '@/components/layout/Header';
 import Button from '@/components/ui/Button';
 import Alert from '@/components/ui/Alert';
 import Card from '@/components/ui/Card';
@@ -126,9 +125,8 @@ export default function FoundationsPage() {
         </section>
 
         <div className="demo-shell">
-          <Sidebar active="overview" role="executive" refreshed={DEFAULT_REFRESHED} aria-label="Sidebar example" />
           <div>
-            <Topbar role="executive" aria-label="Top bar example" />
+            <Header active="overview" user={null} refreshed={DEFAULT_REFRESHED} />
 
             <section aria-labelledby="states-title">
               <h2 className="doc__eyebrow" id="states-title">

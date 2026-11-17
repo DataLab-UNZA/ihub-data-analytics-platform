@@ -181,7 +181,9 @@ def test_without_auth_configured_research_still_works(insights_db: Path) -> None
     def not_configured() -> AuthService:
         raise AuthNotConfiguredError("Sign-in is not available: IHUB_AUTH_SECRET is not set.")
 
-    client = TestClient(create_app(lambda: insights_db, auth_service=not_configured))
+    client = TestClient(
+        create_app(lambda: insights_db, auth_service=not_configured, require_sign_in=False)
+    )
     assert client.get("/api/overview").status_code == 200
     response = client.get("/api/auth/methods")
     assert response.status_code == 503

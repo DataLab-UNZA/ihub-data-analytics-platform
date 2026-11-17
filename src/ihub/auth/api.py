@@ -19,8 +19,9 @@ from fastapi import APIRouter, Depends, Query, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
-from ihub.auth.errors import NotAuthenticatedError, PermissionDeniedError
+from ihub.auth.errors import InvalidRequestError, NotAuthenticatedError, PermissionDeniedError
 from ihub.auth.models import AuthEvent, Principal, User, UserStatus
+from ihub.auth.profile import MAX_AVATAR_BYTES
 from ihub.auth.rbac import ROLE_PERMISSIONS, Permission, Role
 from ihub.auth.service import AuthService, SignInResult
 
@@ -127,6 +128,8 @@ class UserOut(BaseModel):
     permissions: list[Permission]
     created_at: datetime
     last_sign_in_at: datetime | None
+    phone: str | None = None
+    avatar_updated_at: datetime | None = None
 
     @classmethod
     def of(cls, user: User) -> UserOut:
@@ -139,7 +142,23 @@ class UserOut(BaseModel):
             permissions=sorted(user.permissions),
             created_at=user.created_at,
             last_sign_in_at=user.last_sign_in_at,
+            phone=user.phone,
+            avatar_updated_at=user.avatar_updated_at,
         )
+
+
+class ProfileIn(BaseModel):
+    name: str | None = Field(default=None, max_length=200)
+    phone: str | None = Field(default=None, max_length=40)
+
+
+class EmailChangeIn(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+
+
+class EmailChangeVerifyIn(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+    code: str = Field(min_length=1, max_length=16)
 
 
 class TokenOut(BaseModel):
@@ -265,6 +284,57 @@ def build_auth_router() -> APIRouter:
         """The signed-in user, with the permissions their role grants."""
         _no_store(response)
         return UserOut.of(service.current_user(principal))
+
+    @router.patch("/me")
+    def update_me(body: ProfileIn, principal: PrincipalDep, service: AuthServiceDep) -> UserOut:
+        """Change your own name or phone."""
+        return UserOut.of(service.update_profile(principal, name=body.name, phone=body.phone))
+
+    @router.put("/me/avatar")
+    async def put_avatar(
+        request: Request, principal: PrincipalDep, service: AuthServiceDep
+    ) -> UserOut:
+        """Upload your profile photo as the raw request body (PNG, JPEG or WebP, 2 MB)."""
+        declared = int(request.headers.get("content-length") or 0)
+        if declared > MAX_AVATAR_BYTES:
+            raise InvalidRequestError("The photo must be 2 MB or smaller.", reason="too_large")
+        data = b""
+        async for chunk in request.stream():
+            data += chunk
+            if len(data) > MAX_AVATAR_BYTES:
+                raise InvalidRequestError("The photo must be 2 MB or smaller.", reason="too_large")
+        return UserOut.of(service.set_avatar(principal, data))
+
+    @router.get("/me/avatar")
+    def get_avatar(principal: PrincipalDep, service: AuthServiceDep) -> Response:
+        """Your profile photo (404 when there is none)."""
+        avatar = service.avatar(principal)
+        return Response(
+            content=avatar.data,
+            media_type=avatar.content_type,
+            headers={"Cache-Control": "private, max-age=300", "X-Content-Type-Options": "nosniff"},
+        )
+
+    @router.delete("/me/avatar")
+    def delete_avatar(principal: PrincipalDep, service: AuthServiceDep) -> UserOut:
+        return UserOut.of(service.remove_avatar(principal))
+
+    @router.post("/me/email/request", status_code=status.HTTP_202_ACCEPTED)
+    def email_change_request(
+        body: EmailChangeIn, principal: PrincipalDep, service: AuthServiceDep
+    ) -> EmailCodeSentOut:
+        """Send a code to the new address; nothing changes until it is confirmed."""
+        sent = service.request_email_change(principal, body.email)
+        return EmailCodeSentOut(expires_in=sent.expires_in, resend_after=sent.resend_after)
+
+    @router.post("/me/email/verify")
+    def email_change_verify(
+        body: EmailChangeVerifyIn, principal: PrincipalDep, service: AuthServiceDep
+    ) -> UserOut:
+        """Switch to the new address with the code sent to it."""
+        return UserOut.of(
+            service.confirm_email_change(principal, new_email=body.email, code=body.code)
+        )
 
     return router
 

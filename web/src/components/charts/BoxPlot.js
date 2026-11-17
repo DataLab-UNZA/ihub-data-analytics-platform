@@ -47,7 +47,7 @@ export default function BoxPlot({ title, description, tableCaption, rows }) {
                 y={top}
                 width={x(row.q3) - x(row.q1)}
                 height={BOX_HEIGHT}
-                rx="2"
+                rx="0"
               />
               <line className="boxplot__median" x1={x(row.median)} x2={x(row.median)} y1={top} y2={top + BOX_HEIGHT} />
             </g>

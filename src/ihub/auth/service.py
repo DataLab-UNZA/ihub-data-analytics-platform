@@ -26,7 +26,8 @@ from ihub.auth.errors import (
     PermissionDeniedError,
 )
 from ihub.auth.google import GoogleOAuthClient
-from ihub.auth.models import AuthEvent, Principal, SignInMethod, User, UserStatus
+from ihub.auth.models import AuthEvent, Avatar, Principal, SignInMethod, User, UserStatus
+from ihub.auth.profile import clean_name, clean_phone, image_type
 from ihub.auth.rbac import DEFAULT_ROLE, Permission, Role
 from ihub.auth.store import AuthStore
 from ihub.auth.tokens import (
@@ -198,6 +199,78 @@ class AuthService:
         if user is None or not user.is_active:
             raise InvalidTokenError()
         return user
+
+    # Own account ---------------------------------------------------------------------
+
+    def update_profile(
+        self, principal: Principal, *, name: str | None = None, phone: str | None = None
+    ) -> User:
+        """Change your own display name and phone (None leaves a field unchanged)."""
+        user = self.current_user(principal)
+        updated = replace(
+            user,
+            name=clean_name(name) if name is not None else user.name,
+            phone=clean_phone(phone) if phone is not None else user.phone,
+        )
+        if updated != user:
+            self._store.users.update(updated)
+            self._audit("profile_updated", user_id=user.user_id, actor_id=user.user_id)
+        return updated
+
+    def set_avatar(self, principal: Principal, data: bytes) -> User:
+        """Store your profile photo (PNG, JPEG or WebP, at most 2 MB)."""
+        user = self.current_user(principal)
+        content_type = image_type(data)
+        now = self._clock()
+        self._store.avatars.put(
+            user.user_id, Avatar(content_type=content_type, data=data, updated_at=now)
+        )
+        updated = replace(user, avatar_updated_at=now)
+        self._store.users.update(updated)
+        return updated
+
+    def remove_avatar(self, principal: Principal) -> User:
+        user = self.current_user(principal)
+        self._store.avatars.delete(user.user_id)
+        updated = replace(user, avatar_updated_at=None)
+        self._store.users.update(updated)
+        return updated
+
+    def avatar(self, principal: Principal) -> Avatar:
+        user = self.current_user(principal)
+        avatar = self._store.avatars.get(user.user_id)
+        if avatar is None:
+            raise NotFoundError("No profile photo.")
+        return avatar
+
+    def request_email_change(self, principal: Principal, new_email: str) -> EmailCodeSent:
+        """Send a code to the new address; the change happens only when it is confirmed."""
+        user = self.current_user(principal)
+        address = self._config.normalise_email(new_email)
+        self._check_email_free(user, address)
+        self._email_codes.send_code(address)
+        return EmailCodeSent(
+            expires_in=self._email_codes.code_ttl_seconds,
+            resend_after=self._email_codes.resend_after_seconds,
+        )
+
+    def confirm_email_change(self, principal: Principal, *, new_email: str, code: str) -> User:
+        """Switch to the new address once its code is right (proves the user owns it)."""
+        user = self.current_user(principal)
+        address = self._config.normalise_email(new_email)
+        self._check_email_free(user, address)
+        self._email_codes.check_code(address, code)
+        updated = replace(user, email=address)
+        self._store.users.update(updated)
+        self._audit("email_changed", user_id=user.user_id, actor_id=user.user_id)
+        return updated
+
+    def _check_email_free(self, user: User, address: str) -> None:
+        if address == user.email:
+            raise ConflictError("That is already your email address.")
+        owner = self._store.users.get_by_email(address)
+        if owner is not None and owner.user_id != user.user_id:
+            raise ConflictError("Another account already uses that email address.")
 
     # Administration --------------------------------------------------------------------
 

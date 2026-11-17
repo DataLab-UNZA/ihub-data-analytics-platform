@@ -40,12 +40,19 @@ spec:
           env:
             - name: IHUB_API_URL
               value: http://127.0.0.1:8000
+            # Sign-in stays off in production until the persistent user store exists
+            # (ADR-009, ADR-010). Remove from both containers to require sign-in.
+            - name: IHUB_REQUIRE_SIGN_IN
+              value: "false"
           resources:
             limits:
               cpu: "1"
               memory: 512Mi
         - name: api
           image: ${API_IMAGE}
+          env:
+            - name: IHUB_REQUIRE_SIGN_IN
+              value: "false"
           resources:
             limits:
               cpu: "1"

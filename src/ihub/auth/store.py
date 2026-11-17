@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Protocol
 
-from ihub.auth.models import AuthEvent, EmailChallenge, RefreshTokenRecord, User
+from ihub.auth.models import AuthEvent, Avatar, EmailChallenge, RefreshTokenRecord, User
 
 
 class UserRepository(Protocol):
@@ -52,6 +52,16 @@ class EmailChallengeRepository(Protocol):
     def created_since(self, email: str, since: datetime) -> list[datetime]: ...
 
 
+class AvatarRepository(Protocol):
+    """Profile photos, one per user."""
+
+    def get(self, user_id: str) -> Avatar | None: ...
+
+    def put(self, user_id: str, avatar: Avatar) -> None: ...
+
+    def delete(self, user_id: str) -> None: ...
+
+
 class AuditLog(Protocol):
     """Append-only record of sign-ins and access changes."""
 
@@ -74,3 +84,6 @@ class AuthStore(Protocol):
 
     @property
     def audit(self) -> AuditLog: ...
+
+    @property
+    def avatars(self) -> AvatarRepository: ...

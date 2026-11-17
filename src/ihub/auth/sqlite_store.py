@@ -15,6 +15,7 @@ from pathlib import Path
 
 from ihub.auth.models import (
     AuthEvent,
+    Avatar,
     EmailChallenge,
     RefreshTokenRecord,
     User,
@@ -30,7 +31,9 @@ CREATE TABLE IF NOT EXISTS users (
     role TEXT NOT NULL,
     status TEXT NOT NULL,
     created_at TEXT NOT NULL,
-    last_sign_in_at TEXT
+    last_sign_in_at TEXT,
+    phone TEXT,
+    avatar_updated_at TEXT
 );
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     token_hash TEXT PRIMARY KEY,
@@ -54,6 +57,12 @@ CREATE TABLE IF NOT EXISTS email_challenges (
     consumed_at TEXT
 );
 CREATE INDEX IF NOT EXISTS email_challenges_email ON email_challenges (email, created_at);
+CREATE TABLE IF NOT EXISTS avatars (
+    user_id TEXT PRIMARY KEY,
+    content_type TEXT NOT NULL,
+    data BLOB NOT NULL,
+    updated_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS auth_events (
     event_id INTEGER PRIMARY KEY AUTOINCREMENT,
     kind TEXT NOT NULL,
@@ -88,6 +97,11 @@ class _Database:
         path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as con:
             con.executescript(_SCHEMA)
+            # Stores created before profiles existed get the new columns.
+            columns = {row["name"] for row in con.execute("PRAGMA table_info(users)")}
+            for column in ("phone", "avatar_updated_at"):
+                if column not in columns:
+                    con.execute(f"ALTER TABLE users ADD COLUMN {column} TEXT")
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
@@ -118,6 +132,8 @@ class SqliteUserRepository:
             status=UserStatus(row["status"]),
             created_at=_required_dt(row["created_at"]),
             last_sign_in_at=_dt(row["last_sign_in_at"]),
+            phone=row["phone"],
+            avatar_updated_at=_dt(row["avatar_updated_at"]),
         )
 
     def get(self, user_id: str) -> User | None:
@@ -133,7 +149,8 @@ class SqliteUserRepository:
     def add(self, user: User) -> None:
         with self._db.connect() as con:
             con.execute(
-                "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO users (user_id, email, name, role, status, created_at, "
+                "last_sign_in_at, phone, avatar_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     user.user_id,
                     user.email.lower(),
@@ -142,20 +159,24 @@ class SqliteUserRepository:
                     user.status.value,
                     _ts(user.created_at),
                     _ts(user.last_sign_in_at),
+                    user.phone,
+                    _ts(user.avatar_updated_at),
                 ),
             )
 
     def update(self, user: User) -> None:
         with self._db.connect() as con:
             con.execute(
-                "UPDATE users SET email = ?, name = ?, role = ?, status = ?, last_sign_in_at = ? "
-                "WHERE user_id = ?",
+                "UPDATE users SET email = ?, name = ?, role = ?, status = ?, last_sign_in_at = ?, "
+                "phone = ?, avatar_updated_at = ? WHERE user_id = ?",
                 (
                     user.email.lower(),
                     user.name,
                     user.role.value,
                     user.status.value,
                     _ts(user.last_sign_in_at),
+                    user.phone,
+                    _ts(user.avatar_updated_at),
                     user.user_id,
                 ),
             )
@@ -312,6 +333,37 @@ class SqliteAuditLog:
         ]
 
 
+class SqliteAvatarRepository:
+    """Profile photos in the ``avatars`` table."""
+
+    def __init__(self, db: _Database) -> None:
+        self._db = db
+
+    def get(self, user_id: str) -> Avatar | None:
+        with self._db.connect() as con:
+            row = con.execute("SELECT * FROM avatars WHERE user_id = ?", (user_id,)).fetchone()
+        if row is None:
+            return None
+        return Avatar(
+            content_type=row["content_type"],
+            data=bytes(row["data"]),
+            updated_at=_dt(row["updated_at"]),
+        )
+
+    def put(self, user_id: str, avatar: Avatar) -> None:
+        with self._db.connect() as con:
+            con.execute(
+                "INSERT INTO avatars VALUES (?, ?, ?, ?) ON CONFLICT (user_id) DO UPDATE SET "
+                "content_type = excluded.content_type, data = excluded.data, "
+                "updated_at = excluded.updated_at",
+                (user_id, avatar.content_type, avatar.data, _ts(avatar.updated_at)),
+            )
+
+    def delete(self, user_id: str) -> None:
+        with self._db.connect() as con:
+            con.execute("DELETE FROM avatars WHERE user_id = ?", (user_id,))
+
+
 class SqliteAuthStore:
     """All authentication repositories over one SQLite file."""
 
@@ -321,6 +373,7 @@ class SqliteAuthStore:
         self._refresh_tokens = SqliteRefreshTokenRepository(db)
         self._email_challenges = SqliteEmailChallengeRepository(db)
         self._audit = SqliteAuditLog(db)
+        self._avatars = SqliteAvatarRepository(db)
 
     @property
     def users(self) -> SqliteUserRepository:
@@ -337,3 +390,7 @@ class SqliteAuthStore:
     @property
     def audit(self) -> SqliteAuditLog:
         return self._audit
+
+    @property
+    def avatars(self) -> SqliteAvatarRepository:
+        return self._avatars

@@ -47,6 +47,8 @@ BRIEF_PACKAGES: dict[str, dict[str, tuple[str, ...] | None]] = {
     },
     # Features send mail through the interface; providers plug in by name.
     "mail": {"transport.py": ("MailTransport",), "registry.py": ("register_transport",)},
+    # Saved charts and dashboards: the rules live in the service (see its docstring).
+    "workspace": {"service.py": (), "api.py": ()},
 }
 
 # Files bundled with the pack in the zip, next to context-pack.md.

@@ -7,16 +7,21 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from ihub.api.explore_routes import build_explore_router
 from ihub.api.routes import build_router
-from ihub.auth.api import AuthServiceProvider, build_admin_router, build_auth_router
+from ihub.auth.api import AuthServiceProvider, build_admin_router, build_auth_router, require
 from ihub.auth.errors import AuthError
 from ihub.auth.factory import build_auth_service
+from ihub.auth.rbac import Permission
 from ihub.auth.service import AuthService
 from ihub.mart.research import MartUnavailableError
 from ihub.settings import get_settings
+from ihub.workspace.api import WorkspaceProvider, build_workspace_router
+from ihub.workspace.service import WorkspaceService
+from ihub.workspace.sqlite_store import SqliteWorkspaceStore
 
 
 class LazyAuthService:
@@ -39,15 +44,38 @@ class LazyAuthService:
         return self._service
 
 
+class LazyWorkspaceService:
+    """Opens the saved charts and dashboards store on first use."""
+
+    def __init__(self) -> None:
+        self._service: WorkspaceService | None = None
+        self._lock = threading.Lock()
+
+    def __call__(self) -> WorkspaceService:
+        if self._service is None:
+            with self._lock:
+                if self._service is None:
+                    path = get_settings().ihub_workspace_db_path
+                    self._service = WorkspaceService(SqliteWorkspaceStore(path))
+        return self._service
+
+
 def create_app(
     database_path: Callable[[], Path] | None = None,
     auth_service: AuthServiceProvider | None = None,
+    *,
+    require_sign_in: bool | None = None,
+    workspace_service: WorkspaceProvider | None = None,
 ) -> FastAPI:
     """Build the app.
 
     ``database_path`` returns the DuckDB file to read (settings by default);
-    ``auth_service`` returns the authentication service (built from settings by default).
+    ``auth_service`` returns the authentication service (built from settings by default);
+    ``require_sign_in`` protects the research routes with RBAC (``IHUB_REQUIRE_SIGN_IN``
+    by default, which is on unless set to false).
     """
+    if require_sign_in is None:
+        require_sign_in = get_settings().ihub_require_sign_in
     app = FastAPI(
         title="iHub research API",
         description="Research metrics from the iHub research mart, and sign-in (ADR-010).",
@@ -58,6 +86,7 @@ def create_app(
     app.state.auth_service = auth_service or LazyAuthService(
         lambda: build_auth_service(get_settings())
     )
+    app.state.workspace_service = workspace_service or LazyWorkspaceService()
 
     @app.exception_handler(MartUnavailableError)
     async def mart_unavailable(_: Request, exc: MartUnavailableError) -> JSONResponse:
@@ -73,7 +102,22 @@ def create_app(
     async def bad_request(_: Request, exc: ValueError) -> JSONResponse:
         return JSONResponse(status_code=400, content={"detail": str(exc)})
 
-    app.include_router(build_router(database_path or (lambda: get_settings().ihub_duckdb_path)))
+    guarded = require_sign_in
+    app.include_router(
+        build_router(
+            database_path or (lambda: get_settings().ihub_duckdb_path),
+            read=[Depends(require(Permission.RESEARCH_READ))] if guarded else [],
+            export=[Depends(require(Permission.RESEARCH_EXPORT))] if guarded else [],
+        )
+    )
+    app.include_router(
+        build_explore_router(
+            database_path or (lambda: get_settings().ihub_duckdb_path),
+            read=[Depends(require(Permission.RESEARCH_READ))] if guarded else [],
+            export=[Depends(require(Permission.RESEARCH_EXPORT))] if guarded else [],
+        )
+    )
+    app.include_router(build_workspace_router())
     app.include_router(build_auth_router())
     app.include_router(build_admin_router())
     return app

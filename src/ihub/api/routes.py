@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import asdict
 from pathlib import Path
 from typing import Annotated, Any
@@ -34,9 +34,20 @@ def _headline(counts: research.HeadlineCounts) -> dict[str, Any]:
     return {**asdict(counts), "open_access_share": counts.open_access_share}
 
 
-def build_router(database_path: Callable[[], Path]) -> APIRouter:
-    """Create the router; ``database_path`` is called per request so tests can swap the file."""
+def build_router(
+    database_path: Callable[[], Path],
+    *,
+    read: Sequence[Any] = (),
+    export: Sequence[Any] = (),
+) -> APIRouter:
+    """Create the router; ``database_path`` is called per request so tests can swap the file.
+
+    ``/api/health`` is always public (Cloud Run's probes call it). ``read`` dependencies
+    guard every data route and ``export`` the CSV export as well (ADR-010): the app passes
+    ``require(research:read)`` and ``require(research:export)`` when sign-in is required.
+    """
     router = APIRouter(prefix="/api")
+    data = APIRouter(dependencies=list(read))
 
     def years_from(start: int | None, end: int | None) -> YearRange:
         """Fill the open ends from the mart's year bounds."""
@@ -56,7 +67,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             "last_pipeline_run": last_run.isoformat() if last_run else None,
         }
 
-    @router.get("/filters")
+    @data.get("/filters")
     def filters() -> dict[str, Any]:
         """Return the values the global filters can offer."""
         db = database_path()
@@ -71,7 +82,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             "schools": schools,
         }
 
-    @router.get("/overview")
+    @data.get("/overview")
     def overview(start: Start = None, end: End = None) -> dict[str, Any]:
         """Headline numbers, trends, top venues, schools and collaboration for a period."""
         db = database_path()
@@ -117,7 +128,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             search=q,
         )
 
-    @router.get("/publications")
+    @data.get("/publications")
     def publication_list(
         start: Start = None,
         end: End = None,
@@ -142,7 +153,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             "rows": [asdict(row) for row in rows],
         }
 
-    @router.get("/publications/export")
+    @data.get("/publications/export", dependencies=list(export))
     def publication_export(
         start: Start = None,
         end: End = None,
@@ -162,7 +173,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             headers={"Content-Disposition": 'attachment; filename="ihub-publications.csv"'},
         )
 
-    @router.get("/publications/{publication_key}")
+    @data.get("/publications/{publication_key}")
     def publication(publication_key: str) -> dict[str, Any]:
         """One publication with its authors, source records and UNZA units."""
         detail = insights.publication_detail(database_path(), publication_key)
@@ -170,7 +181,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             raise HTTPException(status_code=404, detail="Publication not found")
         return asdict(detail)
 
-    @router.get("/journals")
+    @data.get("/journals")
     def journals(start: Start = None, end: End = None, limit: int = 50) -> dict[str, Any]:
         """The busiest venues, with open-access share, for a period."""
         db = database_path()
@@ -183,7 +194,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             "venues": [{**asdict(v), "open_access_share": v.open_access_share} for v in venues],
         }
 
-    @router.get("/topics")
+    @data.get("/topics")
     def topics(start: Start = None, end: End = None) -> dict[str, Any]:
         """Research fields with their busiest topics (OpenAlex classifications)."""
         db = database_path()
@@ -193,7 +204,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             "fields": [asdict(f) for f in insights.fields_with_topics(db, years)],
         }
 
-    @router.get("/organisation")
+    @data.get("/organisation")
     def organisation(start: Start = None, end: End = None) -> dict[str, Any]:
         """Output per school and per UNZA unit for a period."""
         db = database_path()
@@ -205,7 +216,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             "units": [asdict(u) for u in insights.unit_outputs(db, years)],
         }
 
-    @router.get("/collaboration")
+    @data.get("/collaboration")
     def collaboration(start: Start = None, end: End = None) -> dict[str, Any]:
         """Collaboration summary, countries and partner institutions for a period."""
         db = database_path()
@@ -217,7 +228,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             "partners": [asdict(p) for p in insights.top_partners(db, years, limit=10)],
         }
 
-    @router.get("/coverage")
+    @data.get("/coverage")
     def source_coverage(start: Start = None, end: End = None) -> dict[str, Any]:
         """Per-source totals and the librarians' coverage gaps, with a short preview of each."""
         db = database_path()
@@ -254,7 +265,7 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             "gaps": gaps,
         }
 
-    @router.get("/sources")
+    @data.get("/sources")
     def sources() -> dict[str, Any]:
         """The connected sources, how many publications each holds, and the last pipeline run."""
         db = database_path()
@@ -274,4 +285,5 @@ def build_router(database_path: Callable[[], Path]) -> APIRouter:
             ],
         }
 
+    router.include_router(data)
     return router

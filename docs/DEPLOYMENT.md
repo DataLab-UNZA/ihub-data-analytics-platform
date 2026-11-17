@@ -44,6 +44,21 @@ Set them in GitHub → **Settings → Environments → pipeline → Environment 
 
 The Google Cloud resources were created once with [`scripts/gcp_setup.sh`](../scripts/gcp_setup.sh), run in Cloud Shell. It is safe to re-run and prints the values of the variables above.
 
+## Sign-in (ADR-010)
+
+Production runs with `IHUB_REQUIRE_SIGN_IN=false` on both containers (`deploy/service.yaml`) until the persistent user
+store (Firestore, ADR-009) exists: Cloud Run's disk is temporary, so accounts would vanish. To switch sign-in on later:
+
+1. Create the Firestore store (ADR-009) and give `GCP_RUNTIME_SA` the `roles/datastore.user` role.
+2. Put the secrets in Secret Manager and mount them on the `api` container: `IHUB_AUTH_SECRET`,
+   `IHUB_GOOGLE_CLIENT_SECRET`, `IHUB_SMTP_PASSWORD`. Set the non-secret values as plain env: `IHUB_GOOGLE_CLIENT_ID`,
+   `IHUB_PUBLIC_URL` (the service URL), `IHUB_ALLOWED_EMAIL_DOMAIN=unza.ac.zm`, `IHUB_BOOTSTRAP_ADMINS`,
+   `IHUB_SMTP_HOST`, `IHUB_SMTP_PORT`, `IHUB_SMTP_USERNAME`, `IHUB_SMTP_FROM`.
+3. In the Google Cloud console, list `<service URL>/auth/google/callback` as an authorised redirect URI of the OAuth client.
+4. Remove `IHUB_REQUIRE_SIGN_IN` from both containers.
+
+Never put these values in GitHub variables, the repository or workflow logs.
+
 ## How to roll back
 
 - **Code (fastest):** GitHub → **Actions** → **Deploy** → **Run workflow**, put the commit you want back in **ref** (for example the previous merge on `main`), run it and approve it. The image is rebuilt from that commit with the newest data.
@@ -76,6 +91,7 @@ The billing account began as a Google Cloud Free Trial ($300 credit, no automati
 uv run python -m ihub.ingest                          # creates data/ihub.duckdb
 uv run uvicorn ihub.api.app:app --port 8000           # research API
 cd web && npm install && npm run dev                  # http://localhost:3000
+# With sign-in: fill the IHUB_* sign-in values in .env first; see web/README.md
 ```
 
 To test the two containers together, as Cloud Run runs them:
