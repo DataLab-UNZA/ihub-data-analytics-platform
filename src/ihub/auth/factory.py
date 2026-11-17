@@ -1,6 +1,6 @@
 """Builds the authentication service from settings, refusing unsafe set-ups (ADR-010).
 
-- ``IHUB_ALLOWED_EMAIL_DOMAIN=*`` accepts any address, for testing; development only.
+- ``IHUB_ALLOWED_EMAIL_DOMAIN=*`` accepts any verified email address.
 - ``IHUB_ENV`` defaults to production. Only ``development`` allows a temporary secret
   (sign-ins end when the API restarts) and the console email sender.
 - Production needs a persistent user store (Firestore, ADR-009). Until it exists,
@@ -83,12 +83,7 @@ def build_auth_service(settings: Settings, *, clock: Clock = utc_now) -> AuthSer
     development = environment == "development"
     secret = _secret(settings, development)
     if settings.ihub_allowed_email_domain.strip() == ANY_DOMAIN:
-        if not development:
-            raise AuthNotConfiguredError(
-                "Sign-in is not available: IHUB_ALLOWED_EMAIL_DOMAIN=* (any address) is for "
-                "testing and only works with IHUB_ENV=development."
-            )
-        logger.warning("IHUB_ALLOWED_EMAIL_DOMAIN=*: any email address can sign in (testing).")
+        logger.warning("IHUB_ALLOWED_EMAIL_DOMAIN=*: any verified email address can sign in.")
     config = AuthConfig(
         secret=secret,
         allowed_domain=settings.ihub_allowed_email_domain,

@@ -1,7 +1,7 @@
-"""Testing mode: IHUB_ALLOWED_EMAIL_DOMAIN=* accepts any address (ADR-010).
+"""IHUB_ALLOWED_EMAIL_DOMAIN=* accepts any address.
 
 Every other check still applies: verified email, signature, audience, issuer, nonce,
-expiry and the code rules. Outside development the setting is refused.
+expiry and the code rules.
 """
 
 from pathlib import Path
@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 
 from ihub.auth.config import AuthConfig
-from ihub.auth.errors import AuthNotConfiguredError, IdentityRejectedError, InvalidEmailError
+from ihub.auth.errors import IdentityRejectedError, InvalidEmailError
 from ihub.auth.factory import build_auth_service
 from ihub.auth.rbac import Role
 from ihub.settings import Settings
@@ -64,14 +64,16 @@ def test_email_codes_go_to_any_address(h: Harness) -> None:
     assert h.sign_in_by_email(GMAIL).user.email == GMAIL
 
 
-def test_any_domain_is_refused_outside_development(tmp_path: Path) -> None:
+def test_any_domain_is_allowed_in_production_with_the_explicit_ephemeral_store(
+    tmp_path: Path,
+) -> None:
     base = {
         "_env_file": None,
         "ihub_auth_db_path": tmp_path / "auth.sqlite",
         "ihub_allowed_email_domain": "*",
         "ihub_auth_secret": "a-local-development-secret-of-48-characters-long",
     }
-    with pytest.raises(AuthNotConfiguredError, match="only works with IHUB_ENV=development"):
-        build_auth_service(Settings(**base))
+    service = build_auth_service(Settings(**base, ihub_allow_ephemeral_auth=True))
+    assert service.allowed_domain == "*"
     service = build_auth_service(Settings(**base, ihub_env="development"))
     assert service.allowed_domain == "*"

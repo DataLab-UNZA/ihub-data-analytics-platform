@@ -13,6 +13,8 @@ metadata:
     commit-sha: "${REF}"
     data-tag: "${DATA_TAG}"
   annotations:
+    # Keep the generated run.app URL reachable by users and by the deploy health check.
+    run.googleapis.com/ingress: all
     run.googleapis.com/invoker-iam-disabled: "true"
     ihub/commit: "${SHORT_REF}"
 spec:

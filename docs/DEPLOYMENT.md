@@ -117,4 +117,6 @@ One Cloud Run service, `ihub-app`, with two containers in each instance ([ADR-00
 | `web` | `ihub/web` (`web/Dockerfile`) | 8080, receives all traffic | Next.js front end; calls the API at `http://127.0.0.1:8000` from the server only |
 | `api` | `ihub/api` (`Dockerfile.api`) | 8000, localhost only | FastAPI research API over the DuckDB file built into the image |
 
+The service explicitly uses Cloud Run ingress `all` and unauthenticated invocation, so its generated `run.app` URL is reachable by users and by the deployment health check.
+
 `web` starts once `api` passes its startup probe (`/api/health`). The API is never reachable from the internet. The design-only screen index redirects to `/overview` in production; `IHUB_SHOW_PREVIEWS=true` shows it locally.

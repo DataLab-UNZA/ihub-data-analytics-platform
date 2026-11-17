@@ -12,7 +12,7 @@ from ihub.auth.errors import InvalidEmailError
 
 MIN_SECRET_BYTES = 32
 ANY_DOMAIN = "*"
-"""IHUB_ALLOWED_EMAIL_DOMAIN value that accepts every address (testing only, ADR-010)."""
+"""IHUB_ALLOWED_EMAIL_DOMAIN value that accepts every verified email address."""
 MAX_EMAIL_LENGTH = 254
 
 
