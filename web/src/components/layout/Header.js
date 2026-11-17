@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Dropdown, Menu } from 'antd';
-import { DownOutlined, PlusOutlined } from '@ant-design/icons';
+import { CameraOutlined, DownOutlined, LogoutOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
 import Avatar from '@/components/ui/Avatar';
 import { NAV_ITEMS, activePath } from '@/config/navigation';
 import { roleLabel } from '@/config/roles';
@@ -48,10 +48,12 @@ export default function Header({ active, user, refreshed }) {
             </span>
           ),
         },
-        { key: 'account', label: <Link href="/account">My account</Link> },
+        { key: 'account', icon: <UserOutlined />, label: <Link href="/account">My account</Link> },
+        { key: 'photo', icon: <CameraOutlined />, label: <Link href="/account#profile-photo">Profile photo</Link> },
         { type: 'divider' },
         {
           key: 'signout',
+          icon: <LogoutOutlined />,
           label: (
             <form action="/auth/sign-out" method="post">
               <button className="header__menu-button" type="submit">
