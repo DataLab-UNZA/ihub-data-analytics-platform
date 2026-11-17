@@ -17,7 +17,7 @@ from fastapi import APIRouter, Query
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
-from ihub.mart import explore
+from ihub.mart import explore, explore_guides
 
 Aggregate = Literal["COUNT", "COUNT_DISTINCT", "SUM", "AVG", "MIN", "MAX"]
 Operator = Literal[
@@ -47,6 +47,7 @@ class QueryIn(BaseModel):
     order_desc: bool = True
     row_limit: int = Field(default=1000, ge=1, le=explore.MAX_ROWS)
     series_limit: int | None = Field(default=None, ge=1, le=100)
+    transform: Literal["rolling3", "yoy", "cumulative_share"] | None = None
 
     def spec(self) -> explore.QuerySpec:
         return explore.QuerySpec(
@@ -63,6 +64,7 @@ class QueryIn(BaseModel):
             order_desc=self.order_desc,
             row_limit=self.row_limit,
             series_limit=self.series_limit,
+            transform=self.transform,
         )
 
 
@@ -83,8 +85,15 @@ def build_explore_router(
     *,
     read: Sequence[Any] = (),
     export: Sequence[Any] = (),
+    unit_tables: explore.TablesProvider | None = None,
 ) -> APIRouter:
+    """Create the router. ``unit_tables`` fills the school datasets (``explore.TEMP_TABLES``)."""
     router = APIRouter(prefix="/api/explore", tags=["explore"], dependencies=list(read))
+
+    @router.get("/guides")
+    def guides() -> list[dict[str, Any]]:
+        """The ready-made charts, by theme, with plain-language explanations."""
+        return explore_guides.catalogue()
 
     @router.get("/datasets")
     def datasets() -> list[dict[str, Any]]:
@@ -114,22 +123,22 @@ def build_explore_router(
         q: Annotated[str, Query(max_length=100)] = "",
     ) -> list[Any]:
         """The most common values of a column, for filter pickers."""
-        return explore.column_values(database_path(), name, column, q)
+        return explore.column_values(database_path(), name, column, q, unit_tables)
 
     @router.post("/query")
     def query(body: QueryIn) -> dict[str, Any]:
         """Run a chart query: metrics by group-by columns under filters."""
-        return _result(explore.run_query(database_path(), body.spec()))
+        return _result(explore.run_query(database_path(), body.spec(), unit_tables))
 
     @router.post("/samples")
     def samples(body: QueryIn) -> dict[str, Any]:
         """Up to 100 raw rows of the dataset under the same filters."""
-        return _result(explore.samples(database_path(), body.spec()))
+        return _result(explore.samples(database_path(), body.spec(), unit_tables))
 
     @router.post("/query.csv", dependencies=list(export))
     def query_csv(body: QueryIn) -> Response:
         """The query result as CSV (needs research:export)."""
-        result = explore.run_query(database_path(), body.spec())
+        result = explore.run_query(database_path(), body.spec(), unit_tables)
         out = io.StringIO()
         writer = csv.writer(out)
         writer.writerow([column.label for column in result.columns])
