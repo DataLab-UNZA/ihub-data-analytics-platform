@@ -102,14 +102,47 @@ jobs:
         env:
           RUNTIME_SA: ${{ vars.GCP_RUNTIME_SA }}
           DATA_TAG: ${{ steps.data.outputs.tag }}
+          # Sign-in settings for the api container (ADR-010). Secrets come from the job's
+          # environment ("production", or "pipeline" for the weekly redeploy), so add them
+          # to both; the rest are repository variables. Unset values are left out.
+          IHUB_AUTH_SECRET: ${{ secrets.IHUB_AUTH_SECRET }}
+          IHUB_GOOGLE_CLIENT_SECRET: ${{ secrets.IHUB_GOOGLE_CLIENT_SECRET }}
+          IHUB_SMTP_PASSWORD: ${{ secrets.IHUB_SMTP_PASSWORD }}
+          IHUB_GOOGLE_CLIENT_ID: ${{ vars.IHUB_GOOGLE_CLIENT_ID }}
+          IHUB_PUBLIC_URL: ${{ vars.IHUB_PUBLIC_URL }}
+          IHUB_ALLOWED_EMAIL_DOMAIN: ${{ vars.IHUB_ALLOWED_EMAIL_DOMAIN }}
+          IHUB_BOOTSTRAP_ADMINS: ${{ vars.IHUB_BOOTSTRAP_ADMINS }}
+          IHUB_SMTP_HOST: ${{ vars.IHUB_SMTP_HOST }}
+          IHUB_SMTP_PORT: ${{ vars.IHUB_SMTP_PORT }}
+          IHUB_SMTP_USERNAME: ${{ vars.IHUB_SMTP_USERNAME }}
+          IHUB_SMTP_FROM: ${{ vars.IHUB_SMTP_FROM }}
+          IHUB_SMTP_SSL: ${{ vars.IHUB_SMTP_SSL }}
         run: |
           SHORT_REF="$(echo "$REF" | cut -c1-12)"
           API_IMAGE="$REGISTRY/api:$REF"
           WEB_IMAGE="$REGISTRY/web:$REF"
-          export SERVICE REF SHORT_REF RUNTIME_SA DATA_TAG API_IMAGE WEB_IMAGE
+          # Google redirects sign-ins back to the app's own address, so default to it.
+          if [ -z "$IHUB_PUBLIC_URL" ]; then
+            IHUB_PUBLIC_URL="$(gcloud run services describe "$SERVICE" --region "${{ vars.GCP_REGION }}" \
+              --format='value(status.url)' 2>/dev/null || true)"
+          fi
+          # One env entry per value that is set. jq quotes each value as a JSON string, which is
+          # also valid YAML, so quotes or backslashes in a password cannot break the file.
+          API_AUTH_ENV=""
+          for name in IHUB_AUTH_SECRET IHUB_GOOGLE_CLIENT_ID IHUB_GOOGLE_CLIENT_SECRET IHUB_PUBLIC_URL \
+            IHUB_ALLOWED_EMAIL_DOMAIN IHUB_BOOTSTRAP_ADMINS IHUB_SMTP_HOST IHUB_SMTP_PORT \
+            IHUB_SMTP_USERNAME IHUB_SMTP_PASSWORD IHUB_SMTP_FROM IHUB_SMTP_SSL; do
+            value="${!name}"
+            [ -n "$value" ] || continue
+            API_AUTH_ENV+="            - name: $name"$'\n'
+            API_AUTH_ENV+="              value: $(jq -Rn --arg v "$value" '$v')"$'\n'
+          done
+          export SERVICE REF SHORT_REF RUNTIME_SA DATA_TAG API_IMAGE WEB_IMAGE API_AUTH_ENV
           # Single quotes on purpose: envsubst replaces only the variables listed here.
+          # The rendered file holds secrets: it stays in the runner's temporary folder and is
+          # never printed or uploaded.
           # shellcheck disable=SC2016
-          envsubst '${SERVICE} ${REF} ${SHORT_REF} ${DATA_TAG} ${RUNTIME_SA} ${API_IMAGE} ${WEB_IMAGE}' \
+          envsubst '${SERVICE} ${REF} ${SHORT_REF} ${DATA_TAG} ${RUNTIME_SA} ${API_IMAGE} ${WEB_IMAGE} ${API_AUTH_ENV}' \
             < deploy/service.yaml > "$RUNNER_TEMP/service.yaml"
           gcloud run services replace "$RUNNER_TEMP/service.yaml" --region "${{ vars.GCP_REGION }}" --quiet
           url="$(gcloud run services describe "$SERVICE" --region "${{ vars.GCP_REGION }}" --format='value(status.url)')"

@@ -53,6 +53,10 @@ spec:
           env:
             - name: IHUB_REQUIRE_SIGN_IN
               value: "false"
+            # Sign-in settings (Google OAuth, SMTP, auth secret), from GitHub secrets and
+            # variables. deploy.yml writes one entry per value that is set, already quoted,
+            # in place of the line below. See docs/DEPLOYMENT.md.
+${API_AUTH_ENV}
           resources:
             limits:
               cpu: "1"
