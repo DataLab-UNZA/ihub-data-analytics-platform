@@ -1,6 +1,6 @@
 # ADR-001: Technology stack
 
-- **Status:** Accepted
+- **Status:** Accepted; the web interface (Streamlit) is superseded by [ADR-007](ADR-007-nextjs-only-front-end.md)
 - **Date:** November 8, 2026
 - **Decided by:** Lighton Phiri
 

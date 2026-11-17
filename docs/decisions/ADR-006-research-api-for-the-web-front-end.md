@@ -1,6 +1,6 @@
 # ADR-006: A read-only research API between the mart and the Next.js front end
 
-- **Status:** Proposed
+- **Status:** Accepted (with [ADR-007](ADR-007-nextjs-only-front-end.md))
 - **Date:** November 16, 2026
 - **Decided by:** (author to add), for review by Lighton Phiri
 

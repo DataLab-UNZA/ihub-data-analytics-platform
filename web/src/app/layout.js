@@ -1,17 +1,20 @@
-import { Poppins, Roboto_Condensed } from 'next/font/google';
+import { AntdRegistry } from '@ant-design/nextjs-registry';
+import { Inter, Playfair_Display } from 'next/font/google';
+import Providers from '@/theme/Providers';
 import '@/styles/global.css';
 
-const poppins = Poppins({
+// Inter is Apache Superset's typeface; Playfair Display is kept for the sign-in heading.
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-poppins',
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-inter',
   display: 'swap',
 });
 
-const robotoCondensed = Roboto_Condensed({
+const playfair = Playfair_Display({
   subsets: ['latin'],
-  weight: ['700'],
-  variable: '--font-roboto-condensed',
+  weight: ['400', '500'],
+  variable: '--font-playfair',
   display: 'swap',
 });
 
@@ -31,8 +34,12 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en-GB" className={`${poppins.variable} ${robotoCondensed.variable}`}>
-      <body>{children}</body>
+    <html lang="en-GB" className={`${inter.variable} ${playfair.variable}`}>
+      <body>
+        <AntdRegistry>
+          <Providers>{children}</Providers>
+        </AntdRegistry>
+      </body>
     </html>
   );
 }

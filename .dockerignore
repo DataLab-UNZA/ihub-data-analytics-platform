@@ -13,3 +13,7 @@ scripts
 config
 *.md
 !README.md
+web
+# Local user store (ADR-010): personal data, never baked into an image
+data/*.sqlite
+data/*.sqlite-*

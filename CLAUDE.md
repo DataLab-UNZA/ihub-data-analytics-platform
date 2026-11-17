@@ -22,7 +22,7 @@ Leave these out: field-weighted citation metrics, benchmarking against other uni
 ## Architecture
 
 ```
-sources -> connectors (Python) -> raw -> staging -> intermediate -> marts -> Streamlit app
+sources -> connectors (Python) -> raw -> staging -> intermediate -> marts -> FastAPI (ihub.api) -> Next.js (web/)
                                   \___________ DuckDB, built by dbt ___________/
 ```
 
@@ -31,9 +31,11 @@ sources -> connectors (Python) -> raw -> staging -> intermediate -> marts -> Str
 - **staging** (`transform/models/staging/<source>/`): one folder per source. Rename, type-cast, standardise. No joins across sources.
 - **intermediate** (`transform/models/intermediate/`): cross-source matching and de-duplication. Publications match on DOI first, then normalised title + year + first-author surname. Authors match on ORCID first, then OpenAlex ID.
 - **marts** (`transform/models/marts/research/`): the research star schema.
-- **App** (`src/ihub/app/`): Streamlit pages. Pages never contain SQL; they call functions in `src/ihub/mart/`.
+- **API** (`src/ihub/api/`): FastAPI routes. Routes never contain SQL; they call functions in `src/ihub/mart/`.
+- **Front end** (`web/`): Next.js, the only user interface (ADR-007). Pages call `web/src/services/*`, which call the API from the server.
+- **Auth** (`src/ihub/auth/`): Google or email-code sign-in, API-issued tokens and role-based access control (ADR-010). Protect routes with `require(Permission...)`.
 - **Pipeline:** a scheduled GitHub Action runs the connectors and `dbt build`, then publishes `ihub.duckdb` as a GitHub Release asset.
-- **Deployment:** a Docker image with the DuckDB file built in, deployed to Google Cloud Run. Auth uses Workload Identity Federation, so there are no service-account keys.
+- **Deployment:** one Google Cloud Run service with two containers (`deploy/service.yaml`): the Next.js front end, which receives all traffic, and the API with the DuckDB file built in, reachable only on localhost. Auth uses Workload Identity Federation, so there are no service-account keys.
 
 ### Research mart (star schema)
 

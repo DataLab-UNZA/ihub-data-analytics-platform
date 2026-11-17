@@ -1,7 +1,8 @@
 name: Deploy
 
-# Builds the web app image with the newest data release and deploys it to
-# Google Cloud Run. Runs on every merge to main that changes the app (after approval in the
+# Builds the two images of the web app (Next.js front end, and the research API
+# with the newest data release built in) and deploys them to Google Cloud Run as
+# one service with two containers (deploy/service.yaml, ADR-007). Runs on every merge to main that changes the app (after approval in the
 # "production" environment), by hand (optionally for an older commit, to roll
 # back) and from the Pipeline workflow after a data refresh.
 # Authenticates with Workload Identity Federation: no keys are stored anywhere.
@@ -58,7 +59,7 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
     env:
       REF: ${{ inputs.ref || github.sha }}
-      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ihub/app
+      REGISTRY: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ihub
     steps:
       - uses: actions/checkout@v4
         with:
@@ -88,36 +89,38 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build and push the image
+      - name: Build and push the images
         run: |
           gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
-          docker build --tag "$IMAGE:$REF" .
-          docker push "$IMAGE:$REF"
+          docker build --file Dockerfile.api --tag "$REGISTRY/api:$REF" .
+          docker build --tag "$REGISTRY/web:$REF" web
+          docker push "$REGISTRY/api:$REF"
+          docker push "$REGISTRY/web:$REF"
 
       - name: Deploy to Cloud Run
         id: deploy
+        env:
+          RUNTIME_SA: ${{ vars.GCP_RUNTIME_SA }}
+          DATA_TAG: ${{ steps.data.outputs.tag }}
         run: |
-          short="$(echo "$REF" | cut -c1-12)"
-          gcloud run deploy "$SERVICE" \
-            --image "$IMAGE:$REF" \
-            --region "${{ vars.GCP_REGION }}" \
-            --service-account "${{ vars.GCP_RUNTIME_SA }}" \
-            --no-invoker-iam-check \
-            --min-instances 0 --max-instances 1 \
-            --cpu 1 --memory 512Mi --cpu-throttling \
-            --concurrency 80 --timeout 3600 --session-affinity \
-            --port 8080 \
-            --labels "commit-sha=$REF,data-tag=${{ steps.data.outputs.tag }}" \
-            --update-annotations "ihub/commit=$short" \
-            --quiet
+          SHORT_REF="$(echo "$REF" | cut -c1-12)"
+          API_IMAGE="$REGISTRY/api:$REF"
+          WEB_IMAGE="$REGISTRY/web:$REF"
+          export SERVICE REF SHORT_REF RUNTIME_SA DATA_TAG API_IMAGE WEB_IMAGE
+          # Single quotes on purpose: envsubst replaces only the variables listed here.
+          # shellcheck disable=SC2016
+          envsubst '${SERVICE} ${REF} ${SHORT_REF} ${DATA_TAG} ${RUNTIME_SA} ${API_IMAGE} ${WEB_IMAGE}' \
+            < deploy/service.yaml > "$RUNNER_TEMP/service.yaml"
+          gcloud run services replace "$RUNNER_TEMP/service.yaml" --region "${{ vars.GCP_REGION }}" --quiet
           url="$(gcloud run services describe "$SERVICE" --region "${{ vars.GCP_REGION }}" --format='value(status.url)')"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Check the app responds
         run: |
-          for i in 1 2 3 4 5; do
-            if curl -fsS "${{ steps.deploy.outputs.url }}/_stcore/health"; then
-              echo; echo "Live at ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          url="${{ steps.deploy.outputs.url }}"
+          for _ in 1 2 3 4 5 6; do
+            if curl -fsS "$url/healthz" && curl -fsS -o /dev/null "$url/overview"; then
+              echo; echo "Live at $url" >> "$GITHUB_STEP_SUMMARY"
               echo "Commit \`$REF\`" >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi

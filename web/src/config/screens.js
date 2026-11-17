@@ -25,16 +25,9 @@ export const SCREEN_GROUPS = [
 ];
 
 export const SCREENS = [
-  // Authentication
+  // Authentication (ADR-010: Google or an email code; no passwords)
   { n: 9, group: 'Authentication', title: 'Sign in', path: '/login' },
-  { n: 10, group: 'Authentication', title: 'Sign in · error', path: '/login/error' },
-  { n: 11, group: 'Authentication', title: 'Forgot password', path: '/forgot-password' },
-  { n: 12, group: 'Authentication', title: 'Create a password', path: '/create-password' },
   { n: 13, group: 'Authentication', title: 'Check your email · code', path: '/verify-code' },
-  { n: 14, group: 'Authentication', title: 'Join your organisation', path: '/accept-invitation' },
-  { n: 15, group: 'Authentication', title: 'Choose a workspace', path: '/choose-workspace' },
-  { n: 16, group: 'Authentication', title: 'Session expired', path: '/login/session-expired' },
-  { n: 17, group: 'Authentication', title: 'Check your inbox', path: '/forgot-password/sent' },
 
   // Overview
   { n: 18, group: 'Overview', title: 'Overview', path: '/overview', nav: 'overview' },
@@ -105,6 +98,9 @@ export const SCREENS = [
   { n: 41, group: 'Workspace and admin', title: 'Users & roles', path: '/admin/users', nav: 'admin', role: 'admin' },
   { n: 42, group: 'Workspace and admin', title: 'Modules', path: '/admin/modules', nav: 'admin', role: 'admin' },
   { n: 43, group: 'Workspace and admin', title: 'Branding', path: '/admin/branding', nav: 'admin', role: 'admin' },
+  { n: 44, group: 'Workspace and admin', title: 'My account', path: '/account', nav: 'account' },
+  { n: 45, group: 'Workspace and admin', title: 'Explore', path: '/explore', nav: 'explore' },
+  { n: 46, group: 'Workspace and admin', title: 'Charts', path: '/charts', nav: 'charts' },
 
   // System states and design
   { n: 2, group: 'System states and design', title: '404 · Page not found', path: '/missing-page', nav: 'overview' },

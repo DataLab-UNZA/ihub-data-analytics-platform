@@ -5,6 +5,34 @@ from pathlib import Path
 import duckdb
 import pytest
 
+#: Settings that change how sign-in and mail behave. dbt loads a local .env into the
+#: process environment, so without this a developer's real SMTP or auth settings could
+#: leak into later tests (and a test could send real email).
+_ISOLATED_PREFIXES = (
+    "IHUB_ENV",
+    "IHUB_AUTH_",
+    "IHUB_SMTP_",
+    "IHUB_MAIL_",
+    "IHUB_GOOGLE_",
+    "IHUB_WORKSPACE_",
+)
+_ISOLATED_NAMES = (
+    "IHUB_ALLOWED_EMAIL_DOMAIN",
+    "IHUB_BOOTSTRAP_ADMINS",
+    "IHUB_PUBLIC_URL",
+    "IHUB_REQUIRE_SIGN_IN",
+)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_auth_and_mail_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every test starts without auth or mail settings from the environment."""
+    import os
+
+    for name in list(os.environ):
+        if name.startswith(_ISOLATED_PREFIXES) or name in _ISOLATED_NAMES:
+            monkeypatch.delenv(name)
+
 
 def build_mart_db(db: Path) -> Path:
     """Create a tiny research mart (five publications, 2019 to 2022) at ``db``."""

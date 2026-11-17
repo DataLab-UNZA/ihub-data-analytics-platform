@@ -1,6 +1,6 @@
 # ADR-005: Next.js front end for the signed-in application
 
-- **Status:** Proposed
+- **Status:** Accepted (with [ADR-007](ADR-007-nextjs-only-front-end.md))
 - **Date:** November 16, 2026
 - **Decided by:** (author to add), for review by Lighton Phiri
 

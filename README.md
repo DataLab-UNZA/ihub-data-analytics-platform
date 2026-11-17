@@ -35,7 +35,7 @@ flowchart LR
     end
 
     REL[GitHub Release<br/>ihub.duckdb]
-    APP[Streamlit web app<br/>Google Cloud Run]
+    APP[Next.js front end + FastAPI research API<br/>Google Cloud Run]
 
     OA --> C
     OR --> C
@@ -47,7 +47,8 @@ flowchart LR
 
 - **Connectors** (Python) fetch data and store it unchanged in the `raw` schema.
 - **dbt** models clean it (`staging`), match and de-duplicate across sources (`intermediate`), then build the research star schema (`marts`).
-- The pipeline publishes the resulting DuckDB file as a GitHub Release asset. The web app image includes that file and runs on Cloud Run.
+- The pipeline publishes the resulting DuckDB file as a GitHub Release asset. The API image includes that file; the Next.js front end (`web/`) calls the API from the server, and both run as one Cloud Run service ([ADR-007](docs/decisions/ADR-007-nextjs-only-front-end.md)).
+- Staff sign in with Google or an email code; the API issues tokens and checks permissions by role ([ADR-010](docs/decisions/ADR-010-token-authentication-and-rbac.md)).
 
 Design decisions are recorded in [`docs/decisions/`](docs/decisions/).
 
@@ -57,8 +58,11 @@ Design decisions are recorded in [`docs/decisions/`](docs/decisions/).
 config/sources.yml        non-secret connector settings
 src/ihub/connectors/      one module per source (shared interface in base.py)
 src/ihub/ingest/          runs connectors, loads raw data into DuckDB
-src/ihub/mart/            read-only query functions used by the app
-src/ihub/app/             Streamlit app (Home.py + pages/)
+src/ihub/mart/            read-only query functions used by the API
+src/ihub/api/             FastAPI research API (routes call ihub.mart, no SQL)
+src/ihub/auth/            sign-in (Google, email code), tokens and role-based access
+web/                      Next.js front end (see web/README.md)
+deploy/service.yaml       Cloud Run service: web + api containers
 transform/                dbt project: staging, intermediate, marts, seeds
 tests/                    pytest tests
 docs/decisions/           architecture decision records (ADRs)
@@ -97,8 +101,11 @@ uv run ruff format --check .
 # Tests
 uv run pytest
 
-# Web app (opens at http://localhost:8501)
-uv run streamlit run src/ihub/app/Home.py
+# Research API (http://localhost:8000/api/docs)
+uv run uvicorn ihub.api.app:app --port 8000
+
+# Front end, in a second terminal (http://localhost:3000; needs Node 20.9+)
+cd web && npm install && npm run dev
 
 # Pipeline: run every enabled connector into data/ihub.duckdb, then build the marts
 uv run python -m ihub.ingest

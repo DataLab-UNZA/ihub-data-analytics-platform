@@ -7,15 +7,15 @@ The web app runs on **Google Cloud Run** in the project `ihub-data-analytics-pla
 ## How it works
 
 ```
-merge to main ──► Deploy workflow ──► waits for approval (production) ──► build image ──► Cloud Run
+merge to main ──► Deploy workflow ──► waits for approval (production) ──► build 2 images ──► Cloud Run
 Monday 02:00 UTC ──► Pipeline workflow ──► connectors + dbt ──► release data-YYYY-MM-DD
                                      └──► redeploy the commit already live, with the new data
 ```
 
 | Workflow | When it runs | What it does |
 |---|---|---|
-| `CI` (`ci.yml`) | every PR and push to `main` | ruff and pytest; must pass before a PR can merge |
-| `Deploy` (`deploy.yml`) | every push to `main` that changes the app; by hand; called by Pipeline | downloads the newest `data-*` release, builds the image, pushes it to Artifact Registry, deploys `ihub-app`, checks `/_stcore/health` and writes the URL to the run summary |
+| `CI` (`ci.yml`) | every PR and push to `main` | ruff and pytest, plus `npm run lint` and `npm run build` for `web/`; must pass before a PR can merge |
+| `Deploy` (`deploy.yml`) | every push to `main` that changes the app; by hand; called by Pipeline | downloads the newest `data-*` release, builds the `api` image (`Dockerfile.api`, data built in) and the `web` image (`web/Dockerfile`), pushes both to Artifact Registry, applies `deploy/service.yaml` to `ihub-app`, checks `/healthz` and `/overview`, and writes the URL to the run summary |
 | `Context pack` (`context-pack.yml`) | every push to `main`, issue changes; by hand | rebuilds the context pack for Claude chats and publishes it on the `context-pack` release (no deploy) |
 | `Pipeline` (`pipeline.yml`) | Mondays 02:00 UTC (04:00 in Lusaka); by hand | runs `python -m ihub.ingest` and `dbt build`, publishes `ihub.duckdb` as `data-YYYY-MM-DD` (keeps the 5 newest), then redeploys the live commit with that data |
 
@@ -44,6 +44,21 @@ Set them in GitHub → **Settings → Environments → pipeline → Environment 
 
 The Google Cloud resources were created once with [`scripts/gcp_setup.sh`](../scripts/gcp_setup.sh), run in Cloud Shell. It is safe to re-run and prints the values of the variables above.
 
+## Sign-in (ADR-010)
+
+Production runs with `IHUB_REQUIRE_SIGN_IN=false` on both containers (`deploy/service.yaml`) until the persistent user
+store (Firestore, ADR-009) exists: Cloud Run's disk is temporary, so accounts would vanish. To switch sign-in on later:
+
+1. Create the Firestore store (ADR-009) and give `GCP_RUNTIME_SA` the `roles/datastore.user` role.
+2. Put the secrets in Secret Manager and mount them on the `api` container: `IHUB_AUTH_SECRET`,
+   `IHUB_GOOGLE_CLIENT_SECRET`, `IHUB_SMTP_PASSWORD`. Set the non-secret values as plain env: `IHUB_GOOGLE_CLIENT_ID`,
+   `IHUB_PUBLIC_URL` (the service URL), `IHUB_ALLOWED_EMAIL_DOMAIN=unza.ac.zm`, `IHUB_BOOTSTRAP_ADMINS`,
+   `IHUB_SMTP_HOST`, `IHUB_SMTP_PORT`, `IHUB_SMTP_USERNAME`, `IHUB_SMTP_FROM`.
+3. In the Google Cloud console, list `<service URL>/auth/google/callback` as an authorised redirect URI of the OAuth client.
+4. Remove `IHUB_REQUIRE_SIGN_IN` from both containers.
+
+Never put these values in GitHub variables, the repository or workflow logs.
+
 ## How to roll back
 
 - **Code (fastest):** GitHub → **Actions** → **Deploy** → **Run workflow**, put the commit you want back in **ref** (for example the previous merge on `main`), run it and approve it. The image is rebuilt from that commit with the newest data.
@@ -63,7 +78,7 @@ The expected cost is $0: the app scales to zero when nobody is using it, and its
 - **Budget alert:** "iHub monthly budget", $5 a month on this project, emails the billing administrators at 10%, 50% and 100% of actual spend and at 100% of forecast spend. It counts costs before credits, so it reports real usage even while trial credit is paying.
 - **Look at spend:** [Billing reports](https://console.cloud.google.com/billing/01AAD0-7EDB2F-48669E/reports?authuser=lighton.phiri@unza.ac.zm), filtered to project `ihub-data-analytics-platform`.
 - **Look at usage:** Cloud Run → `ihub-app` → **Metrics** (instance count, billable instance time).
-- **What keeps it free:** at most one instance; the instance stops about 15 minutes after the last request; browser tabs left open are paused after 20 minutes without activity (`src/ihub/app/idle.py`), which closes their connection.
+- **What keeps it free:** at most one instance, and the instance stops about 15 minutes after the last request. Next.js keeps no connection open between requests, so open browser tabs do not keep the instance running. The instance has two containers of 1 vCPU each (2 vCPU in total), so the free tier covers about 25 instance-hours a month of active use.
 - **Stop all spending at once:** `gcloud run services delete ihub-app --region africa-south1` in Cloud Shell. The next Deploy run recreates it.
 
 ### Trial end: action needed before February 8, 2027
@@ -73,13 +88,30 @@ The billing account began as a Google Cloud Free Trial ($300 credit, no automati
 ## Running locally
 
 ```bash
-uv run python -m ihub.ingest                  # creates data/ihub.duckdb
-uv run streamlit run src/ihub/app/Home.py     # http://localhost:8501
+uv run python -m ihub.ingest                          # creates data/ihub.duckdb
+uv run uvicorn ihub.api.app:app --port 8000           # research API
+cd web && npm install && npm run dev                  # http://localhost:3000
+# With sign-in: fill the IHUB_* sign-in values in .env first; see web/README.md
 ```
 
-To test the container locally:
+To test the two containers together, as Cloud Run runs them:
 
 ```bash
-docker build -t ihub-app .
-docker run --rm -p 8080:8080 ihub-app        # http://localhost:8080
+docker build --file Dockerfile.api -t ihub-api .
+docker build -t ihub-web web
+docker run -d --rm --name ihub-api --network host ihub-api
+docker run -d --rm --name ihub-web --network host ihub-web   # http://localhost:8080
+curl localhost:8080/healthz
+docker stop ihub-web ihub-api
 ```
+
+## The service (`deploy/service.yaml`)
+
+One Cloud Run service, `ihub-app`, with two containers in each instance ([ADR-007](decisions/ADR-007-nextjs-only-front-end.md)):
+
+| Container | Image | Port | Role |
+|---|---|---|---|
+| `web` | `ihub/web` (`web/Dockerfile`) | 8080, receives all traffic | Next.js front end; calls the API at `http://127.0.0.1:8000` from the server only |
+| `api` | `ihub/api` (`Dockerfile.api`) | 8000, localhost only | FastAPI research API over the DuckDB file built into the image |
+
+`web` starts once `api` passes its startup probe (`/api/health`). The API is never reachable from the internet. In production the design-only screens (mock sign-in, screen index) redirect to `/overview` until staff sign-in exists ([ADR-008](decisions/ADR-008-staff-sign-in-with-google.md)); `IHUB_SHOW_PREVIEWS=true` shows them locally.

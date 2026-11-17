@@ -30,8 +30,26 @@ ROOT = Path(__file__).resolve().parent.parent
 #: responses would only fill the pack, the dbt models have a section of their own, and the
 #: Next.js app (web/) is documented in web/README.md.
 COLLAPSED_FOLDERS = ("tests/fixtures/", "transform/models/", "web/")
-MAX_CHARS = 33_000  # about 8,800 tokens: leaves most of a free chat for the work itself
+MAX_CHARS = 35_000  # about 9,300 tokens: leaves most of a free chat for the work itself
 REPO_URL = "https://github.com/DataLab-UNZA/ihub-data-analytics-platform"
+#: Packages used through a few names only. For each module: None shows it in full, a
+#: tuple shows only those names (an empty tuple: its summary line), and modules that are
+#: not listed are left out (their package docstring describes them).
+BRIEF_PACKAGES: dict[str, dict[str, tuple[str, ...] | None]] = {
+    # Routes protect themselves with require (ADR-010).
+    "auth": {
+        "rbac.py": None,
+        "api.py": ("require",),
+        "service.py": (),
+        "tokens.py": (),
+        "google.py": (),
+        "email_codes.py": (),
+    },
+    # Features send mail through the interface; providers plug in by name.
+    "mail": {"transport.py": ("MailTransport",), "registry.py": ("register_transport",)},
+    # Saved charts and dashboards: the rules live in the service (see its docstring).
+    "workspace": {"service.py": (), "api.py": ()},
+}
 
 # Files bundled with the pack in the zip, next to context-pack.md.
 ZIP_EXTRAS = ["docs/STUDENT_GUIDE.md", "docs/STUDENT_PROMPTS.md"]
@@ -140,19 +158,23 @@ def interfaces() -> str:
     """Public classes and functions in src/ihub, with their first docstring line."""
     out: list[str] = []
     for path in sorted((ROOT / "src" / "ihub").rglob("*.py")):
-        # Streamlit pages are scripts and "_" modules are private: neither is called by
-        # other code, so neither is an interface.
-        if path.parent.name == "pages" or (
-            path.name.startswith("_") and path.name not in ("__init__.py", "__main__.py")
-        ):
+        # "_" modules are private: they are not called by other code, so not an interface.
+        if path.name.startswith("_") and path.name not in ("__init__.py", "__main__.py"):
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         # A source connector is used only through the Connector interface in base.py, so
         # it shows its classes and fetch_records only; base.py is shown in full.
         brief = path.parent.name == "connectors" and path.name not in ("base.py", "__init__.py")
+        brief_package = BRIEF_PACKAGES.get(path.parent.name)
+        if brief_package is not None and path.name not in brief_package:
+            continue
+        shown = brief_package[path.name] if brief_package is not None else None
+        summary_only = shown == ()
         items: list[str] = []
         plain_data: list[str] = []  # data classes with no methods: listed on one line below
-        for node in tree.body:
+        for node in [] if summary_only else tree.body:
+            if shown is not None and getattr(node, "name", "") not in shown:
+                continue
             if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 if not node.name.startswith("_") and not brief:
                     items.append(f"- `{_signature(node)}`: {_first_line(node)}".rstrip(": "))
@@ -169,7 +191,7 @@ def interfaces() -> str:
                         items.append(f"  - `{_signature(sub)}`: {_first_line(sub)}".rstrip(": "))
         if plain_data:
             items.append("- data classes: " + ", ".join(plain_data))
-        if items:
+        if items or summary_only:
             rel = path.relative_to(ROOT).as_posix()
             module_doc = _first_line(tree)
             out.append(f"**`{rel}`**" + (f": {module_doc}" if module_doc else ""))

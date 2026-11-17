@@ -6,11 +6,45 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ihub.api.app import create_app
+from tests.auth_helpers import ADMIN, STAFF, make_harness
 
 
 @pytest.fixture
-def client(insights_db: Path) -> TestClient:
-    return TestClient(create_app(lambda: insights_db))
+def client(insights_db: Path, tmp_path: Path) -> TestClient:
+    """A client signed in as an administrator, as the Next.js server would be (ADR-010)."""
+    h = make_harness(tmp_path)
+    test_client = TestClient(
+        create_app(lambda: insights_db, auth_service=lambda: h.service, require_sign_in=True)
+    )
+    access = h.sign_in_by_email(ADMIN).access_token
+    test_client.headers["Authorization"] = f"Bearer {access}"
+    return test_client
+
+
+def test_research_routes_need_a_signed_in_user(insights_db: Path, tmp_path: Path) -> None:
+    h = make_harness(tmp_path)
+    anonymous = TestClient(
+        create_app(lambda: insights_db, auth_service=lambda: h.service, require_sign_in=True)
+    )
+    assert anonymous.get("/api/health").status_code == 200  # Cloud Run's probes
+    for path in ("/api/overview", "/api/publications", "/api/filters", "/api/coverage"):
+        assert anonymous.get(path).status_code == 401, path
+
+
+def test_exporting_needs_the_export_permission(insights_db: Path, tmp_path: Path) -> None:
+    h = make_harness(tmp_path)
+    member_client = TestClient(
+        create_app(lambda: insights_db, auth_service=lambda: h.service, require_sign_in=True)
+    )
+    member = h.sign_in_by_email(STAFF).access_token
+    member_client.headers["Authorization"] = f"Bearer {member}"
+    assert member_client.get("/api/publications").status_code == 200  # research:read
+    assert member_client.get("/api/publications/export").status_code == 403
+
+
+def test_sign_in_can_be_switched_off(insights_db: Path) -> None:
+    open_client = TestClient(create_app(lambda: insights_db, require_sign_in=False))
+    assert open_client.get("/api/overview").status_code == 200
 
 
 def test_health(client: TestClient) -> None:
@@ -77,6 +111,6 @@ def test_the_other_endpoints_answer(client: TestClient) -> None:
 
 
 def test_a_missing_mart_is_a_503(tmp_path: Path) -> None:
-    client = TestClient(create_app(lambda: tmp_path / "missing.duckdb"))
+    client = TestClient(create_app(lambda: tmp_path / "missing.duckdb", require_sign_in=False))
     assert client.get("/api/overview").status_code == 503
     assert client.get("/api/health").json()["mart_available"] is False

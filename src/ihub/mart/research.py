@@ -1,4 +1,4 @@
-"""Read-only queries on the research mart, used by the Streamlit pages.
+"""Read-only queries on the research mart, used by the research API (ihub.api).
 
 Pages never contain SQL: they call the functions here, so the user interface can change
 without touching the data layer. Every function takes the path of the DuckDB file first,

@@ -30,10 +30,48 @@ record pages), journals, topics, collaboration, source coverage, data sources an
 type). If the API or mart is down, these screens show a "couldn't load this data" state.
 
 Still illustrative, and labelled "not connected yet": School of Medicine page, compare units, members and member
-profile, data quality, reports, dashboards, notifications, add-source wizard, administration and the sign-in screens.
-They need sources the platform does not have yet (HR and staff data, reviewer decisions, authentication).
+profile, data quality, reports, dashboards, notifications, add-source wizard, and the administration screens other
+than Users & roles. They need sources the platform does not have yet (HR and staff data, reviewer decisions).
+
+Wired to the sign-in service: sign-in (Google or an email code), the code screen, sign-out, the user and role in the
+top bar, the menu, and Users & roles (real accounts, role and status changes).
 
 The **unit** filter is listed but not applied to the data yet.
+
+## Sign-in and roles (ADR-010)
+
+The browser never holds a token. This server is a backend-for-frontend: route handlers under `src/app/auth/` run the
+sign-in flows against the API and keep its tokens in httpOnly cookies.
+
+```
+/login ── Continue with Google ─► /auth/google ── API: /api/auth/google/start ─► Google
+                                  /auth/google/callback ◄── code + state ── Google
+                                    └─ API: /api/auth/google/callback (checks state, PKCE, ID token) ─► cookies
+       ── Email me a code ─────► /auth/email ── API: /api/auth/email/request ─► email with 6 digits
+/verify-code ── 6 digits ──────► /auth/email/verify ── API: /api/auth/email/verify ─► cookies
+```
+
+| Cookie | Holds | Lifetime |
+|---|---|---|
+| `ihub_at` | access token (JWT) | 15 minutes |
+| `ihub_rt` | refresh token (opaque, rotated on use) | 7 days, session at most 30 |
+| `ihub_oauth` | signed Google flow state, path `/auth/google` only | 10 minutes |
+| `ihub_pending` | the address waiting for its code | 10 minutes |
+| `ihub_flash` | a one-off message for the next screen | 1 minute |
+
+All are httpOnly and `SameSite=Lax`, and `Secure` over HTTPS. Form posts also check the `Origin` header.
+
+- `src/proxy.js` runs before every page: signed-out visitors go to `/login?next=…`; an expired access token is refreshed
+  silently with the refresh token (the new cookies reach the page in the same request).
+- `src/lib/api.js` sends `Authorization: Bearer <access token>` on every API call and sends a 401 to `/login`.
+- Roles: the menu (`config/navigation.js`, `permission`), the CSV export button and the admin pages
+  (`app/(app)/admin/layout.js`) follow the user's permissions. The API enforces the same rules on every request.
+- `IHUB_REQUIRE_SIGN_IN=false` switches sign-in off (production does this until the user store exists, ADR-009).
+
+Run locally with sign-in: set the `IHUB_*` sign-in values in the repository's `.env` (see `.env.example`), start the
+API, then `npm run build && npx next start -p 3100` (or `npm run dev -- -p 3100`), and open http://localhost:3100.
+`IHUB_PUBLIC_URL` must match that address, and Google must list `<that address>/auth/google/callback` as an
+authorised redirect URI. End-to-end check: `scripts/e2e_sign_in.sh` (instructions at its top).
 
 ## Data flow
 
@@ -95,4 +133,4 @@ web/
 - Forms navigate between screens but do not write anything (the API is read-only).
 - Excel export needs server-side generation, so that button is disabled. CSV export works.
 - A few links (terms of use, help and data definitions, per-field mapping) are placeholders.
-- Demo values on the sign-in, code and password screens mirror the designs and should be removed when wired to a back end.
+- Unit heads see every unit; limiting them to their own unit needs a later ADR.
