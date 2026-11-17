@@ -40,10 +40,7 @@ spec:
           env:
             - name: IHUB_API_URL
               value: http://127.0.0.1:8000
-            # Sign-in stays off in production until the persistent user store exists
-            # (ADR-009, ADR-010). Remove from both containers to require sign-in.
-            - name: IHUB_REQUIRE_SIGN_IN
-              value: "false"
+            # Sign-in is required (ADR-010); users are kept in Firestore (ADR-009, ADR-012).
           resources:
             limits:
               cpu: "1"
@@ -51,8 +48,9 @@ spec:
         - name: api
           image: ${API_IMAGE}
           env:
-            - name: IHUB_REQUIRE_SIGN_IN
-              value: "false"
+            # Users, sessions and photos live in Firestore, which survives restarts (ADR-012).
+            - name: IHUB_AUTH_STORE
+              value: firestore
             # Sign-in settings (Google OAuth, SMTP, auth secret), from GitHub secrets and
             # variables. deploy.yml writes one entry per value that is set, already quoted,
             # in place of the line below. See docs/DEPLOYMENT.md.

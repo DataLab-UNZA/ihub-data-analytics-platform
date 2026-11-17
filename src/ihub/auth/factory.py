@@ -3,8 +3,8 @@
 - ``IHUB_ALLOWED_EMAIL_DOMAIN=*`` accepts any address, for testing; development only.
 - ``IHUB_ENV`` defaults to production. Only ``development`` allows a temporary secret
   (sign-ins end when the API restarts) and the console email sender.
-- Production needs a persistent user store (Firestore, ADR-009). Until it exists,
-  authentication refuses to run there, because Cloud Run's disk is temporary.
+- Production needs the persistent user store (``IHUB_AUTH_STORE=firestore``, ADR-009),
+  because Cloud Run's disk is temporary; the SQLite store is refused there.
 - A sign-in method is offered only when it is configured: Google needs the client ID,
   client secret and public URL; email codes need a mail transport (ihub.mail).
 """
@@ -24,9 +24,11 @@ from ihub.auth.config import (
 )
 from ihub.auth.email_codes import EmailCodeService, EmailSender, MailCodeSender
 from ihub.auth.errors import AuthNotConfiguredError
+from ihub.auth.firestore_store import FirestoreAuthStore
 from ihub.auth.google import GoogleOAuthClient
 from ihub.auth.service import AuthService
 from ihub.auth.sqlite_store import SqliteAuthStore
+from ihub.auth.store import AuthStore
 from ihub.auth.tokens import TokenService
 from ihub.mail.registry import MailNotConfiguredError, transport_from_settings
 from ihub.settings import Settings
@@ -89,9 +91,14 @@ def build_auth_service(settings: Settings, *, clock: Clock = utc_now) -> AuthSer
                 "testing and only works with IHUB_ENV=development."
             )
         logger.warning("IHUB_ALLOWED_EMAIL_DOMAIN=*: any email address can sign in (testing).")
-    if not development:
+    store_kind = settings.ihub_auth_store.strip().lower()
+    if store_kind not in ("sqlite", "firestore"):
         raise AuthNotConfiguredError(
-            "Sign-in is not available yet: production needs a persistent user store (ADR-009)."
+            f"Sign-in is not available: unknown IHUB_AUTH_STORE {store_kind!r}."
+        )
+    if store_kind == "sqlite" and not development:
+        raise AuthNotConfiguredError(
+            "Sign-in is not available: production needs IHUB_AUTH_STORE=firestore (ADR-009)."
         )
     config = AuthConfig(
         secret=secret,
@@ -100,7 +107,11 @@ def build_auth_service(settings: Settings, *, clock: Clock = utc_now) -> AuthSer
         public_url=settings.ihub_public_url,
         bootstrap_admins=parse_email_list(settings.ihub_bootstrap_admins),
     )
-    store = SqliteAuthStore(settings.ihub_auth_db_path)
+    store: AuthStore
+    if store_kind == "firestore":
+        store = FirestoreAuthStore.connect(settings.ihub_firestore_database)
+    else:
+        store = SqliteAuthStore(settings.ihub_auth_db_path)
     return AuthService(
         config,
         store,
