@@ -11,6 +11,7 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from ihub.api.explore_routes import build_explore_router
+from ihub.api.members import build_members_router
 from ihub.api.routes import build_router
 from ihub.auth.api import AuthServiceProvider, build_admin_router, build_auth_router, require
 from ihub.auth.errors import AuthError
@@ -113,6 +114,13 @@ def create_app(
             read=[Depends(require(Permission.RESEARCH_READ))] if guarded else [],
             export=[Depends(require(Permission.RESEARCH_EXPORT))] if guarded else [],
             staff_roster_path=roster_path,
+        )
+    )
+    app.include_router(
+        build_members_router(
+            database_path or (lambda: get_settings().ihub_duckdb_path),
+            roster_path,
+            read=[Depends(require(Permission.MEMBERS_READ))] if guarded else [],
         )
     )
     app.include_router(

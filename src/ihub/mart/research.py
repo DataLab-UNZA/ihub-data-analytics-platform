@@ -377,6 +377,13 @@ def publication_breakdown(db_path: Path, filters: PublicationFilter) -> Publicat
     )
 
 
+def matching_keys(db_path: Path, filters: PublicationFilter) -> frozenset[str]:
+    """Return the key of every publication matching ``filters`` (the same WHERE as the list)."""
+    where, params = _publication_where(filters)
+    rows = _fetch(db_path, f"SELECT f.publication_key {_PUBLICATIONS_FROM} {where}", params)  # noqa: S608
+    return frozenset(str(key) for (key,) in rows)
+
+
 def publications(
     db_path: Path,
     filters: PublicationFilter,

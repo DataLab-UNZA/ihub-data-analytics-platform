@@ -5,6 +5,8 @@ An author is linked to a school in one of four ways, recorded as the link's ``ba
 * ``roster``: the author's name fits one roster entry (or several in the same school);
 * ``roster_tiebreak``: the name fits entries in different schools, and the author's department
   evidence names exactly one of them;
+* ``roster_override``: a person pinned this author to a staff member by hand (see
+  :mod:`ihub.staff.overrides`), for names the matching cannot connect;
 * ``department_for_fellow``: the name fits a staff development fellow (no school in the roster),
   so the school comes from the author's department evidence;
 * ``department_only``: the name is not on the roster but the pipeline found the author's
@@ -25,15 +27,17 @@ from ihub.mart import staff_links
 from ihub.mart.research import YearRange
 from ihub.staff.matching import INITIAL, RosterIndex, match_name
 from ihub.staff.names import parse_person
+from ihub.staff.overrides import load_overrides, overrides_path, pin_authors
 from ihub.staff.roster import Roster, load_roster
 
 ROSTER = "roster"
 TIEBREAK = "roster_tiebreak"
+OVERRIDE = "roster_override"
 FELLOW = "department_for_fellow"
 DEPARTMENT_ONLY = "department_only"
 
 #: Link bases that come from the roster (the rest is supplementary department evidence).
-ROSTER_BASES = frozenset({ROSTER, TIEBREAK, FELLOW})
+ROSTER_BASES = frozenset({ROSTER, TIEBREAK, FELLOW, OVERRIDE})
 
 
 @dataclass(frozen=True)
@@ -43,6 +47,10 @@ class AuthorLink:
     schools: frozenset[str]
     basis: str
     rule: str | None = None
+    #: The one roster entry the name fits in the credited school(s), or None when several fit
+    #: (or the link is not from the roster). Used by the Members directory only; it is not part
+    #: of what two links are compared by.
+    staff_id: str | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True)
@@ -73,16 +81,26 @@ class LinkResult:
     matched_staff_by_school: dict[str, int] = field(default_factory=dict)
 
 
+def _only_person(candidates: Iterable, schools: set[str]) -> str | None:
+    """Return the staff ID when exactly one roster entry fits in ``schools``, else None."""
+    ids = {c.member.staff_id for c in candidates if c.member.school in schools}
+    return next(iter(ids)) if len(ids) == 1 else None
+
+
 def link_authors(
     authors: Iterable[tuple[str, str]],
     roster: Roster,
     evidence: Mapping[str, frozenset[str]],
+    pinned: Mapping[str, str] | None = None,
 ) -> LinkResult:
     """Link ``(author_key, author_name)`` pairs to schools through ``roster``.
 
     ``evidence`` maps an author to the schools of the departments found for that author.
+    ``pinned`` maps an author to the staff ID a person confirmed by hand; it wins over the name.
     """
     index = RosterIndex(roster.members)
+    people = {member.staff_id: member for member in roster.members}
+    pinned = pinned or {}
     links: dict[str, AuthorLink] = {}
     by_rule: Counter[str] = Counter()
     matched_staff: dict[str, set[str]] = defaultdict(set)
@@ -92,6 +110,14 @@ def link_authors(
     for key, name in authors:
         considered += 1
         known = evidence.get(key, frozenset())
+        pin = people.get(pinned.get(key, ""))
+        if pin is not None:
+            schools = frozenset({pin.school}) if pin.school else known
+            links[key] = AuthorLink(schools, OVERRIDE, "override", pin.staff_id)
+            by_rule["override"] += 1
+            if pin.school:
+                matched_staff[pin.school].add(pin.staff_id)
+            continue
         outcome = match_name(parse_person(name), index)
         candidates = list(outcome.candidates)
         if outcome.ambiguous:
@@ -113,7 +139,9 @@ def link_authors(
         rule = candidates[0].rule
         schools = {c.member.school for c in candidates if c.member.school is not None}
         if len(schools) == 1:
-            links[key] = AuthorLink(frozenset(schools), ROSTER, rule)
+            links[key] = AuthorLink(
+                frozenset(schools), ROSTER, rule, _only_person(candidates, schools)
+            )
         elif len(schools) > 1:
             chosen = schools & known
             if len(chosen) != 1:
@@ -122,7 +150,9 @@ def link_authors(
                     links[key] = AuthorLink(known, DEPARTMENT_ONLY)
                     department_only += 1
                 continue
-            links[key] = AuthorLink(frozenset(chosen), TIEBREAK, rule)
+            links[key] = AuthorLink(
+                frozenset(chosen), TIEBREAK, rule, _only_person(candidates, chosen)
+            )
             tiebroken += 1
         elif known:  # only staff development fellows fit: take the school from the department
             links[key] = AuthorLink(known, FELLOW, rule)
@@ -231,7 +261,7 @@ def aggregate(
     )
 
 
-_cache: dict[tuple[str, int, str, int], tuple[Roster, LinkResult]] = {}
+_cache: dict[tuple[str, int, str, int, int], tuple[Roster, LinkResult]] = {}
 
 
 def _mtime(path: Path) -> int:
@@ -245,7 +275,9 @@ def linked_authors(db_path: Path, roster_path: Path) -> tuple[Roster, LinkResult
     """
     if not Path(roster_path).is_file() or not Path(db_path).is_file():
         return None
-    key = (str(db_path), _mtime(db_path), str(roster_path), _mtime(roster_path))
+    overrides_file = overrides_path(roster_path)
+    changed = _mtime(overrides_file) if overrides_file.is_file() else 0
+    key = (str(db_path), _mtime(db_path), str(roster_path), _mtime(roster_path), changed)
     if key not in _cache:
         roster = load_roster(roster_path)
         if roster is None:
@@ -253,7 +285,10 @@ def linked_authors(db_path: Path, roster_path: Path) -> tuple[Roster, LinkResult
         authors = staff_links.unza_authors(db_path)
         evidence = staff_links.author_department_schools(db_path)
         _cache.clear()  # keep one entry: a rebuilt database or roster replaces the old one
-        _cache[key] = (roster, link_authors(authors, roster, evidence))
+        pinned = pin_authors(
+            load_overrides(overrides_file), staff_links.author_identifiers(db_path)
+        )
+        _cache[key] = (roster, link_authors(authors, roster, evidence, pinned))
     return _cache[key]
 
 
