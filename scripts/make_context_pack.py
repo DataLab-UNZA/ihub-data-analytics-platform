@@ -107,14 +107,28 @@ def without_comment_lines(yaml_text: str) -> str:
     return "\n".join(line for line in lines if not line.lstrip().startswith("#"))
 
 
+def _is_test_module(path: str) -> bool:
+    """A test module directly in tests/ (listed as one summary line, not one line each)."""
+    folder, _, name = path.rpartition("/")
+    return folder == "tests" and name.startswith("test_") and name.endswith(".py")
+
+
 def folder_tree() -> str:
-    """Tracked files as an indented tree, with .gitkeep folders shown as empty."""
+    """Tracked files as an indented tree, with .gitkeep folders shown as empty.
+
+    The test modules in tests/ are summarised in one line: their names follow the module
+    they test, and listing them all would cost about 1,200 characters of the pack.
+    """
     files = _run("git", "ls-files").splitlines()
     skip = ("uv.lock", "docs/context-pack.md")
     lines: list[str] = []
     seen: set[str] = set()
+    n_test_modules = 0
     for f in sorted(files):
         if f in skip:
+            continue
+        if _is_test_module(f):
+            n_test_modules += 1
             continue
         prefix = next((p for p in COLLAPSED_FOLDERS if f.startswith(p)), None)
         if prefix and "/" in f[len(prefix) :]:
@@ -130,6 +144,13 @@ def folder_tree() -> str:
                 lines.append("  " * depth + parts[depth] + "/")
         if parts[-1] != ".gitkeep":
             lines.append("  " * (len(parts) - 1) + parts[-1])
+    if n_test_modules:
+        summary = (
+            f"  test_*.py ({n_test_modules} test modules, one per module; ask for any by name)"
+        )
+        if "tests/" not in lines:
+            lines.append("tests/")
+        lines.insert(lines.index("tests/") + 1, summary)
     return "\n".join(lines)
 
 

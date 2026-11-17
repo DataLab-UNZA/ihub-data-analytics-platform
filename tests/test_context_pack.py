@@ -34,6 +34,13 @@ def test_pack_has_every_section_and_fits() -> None:
     assert "class `Connector(ABC)`" in pack
 
 
+def test_tree_summarises_test_modules_in_one_line() -> None:
+    tree = pack_module.folder_tree()
+    assert "test_context_pack.py" not in tree
+    assert "test_*.py (" in tree
+    assert tree.splitlines()[tree.splitlines().index("tests/") + 1].startswith("  test_*.py (")
+
+
 def test_open_issues_skip_pull_requests(tmp_path: Path) -> None:
     issues = [
         {"number": 7, "title": "OpenAlex connector", "labels": [{"name": "connector"}]},
