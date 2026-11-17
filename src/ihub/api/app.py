@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from ihub.api.explore_routes import build_explore_router
 from ihub.api.members import build_members_router
 from ihub.api.routes import build_router
+from ihub.api.units import UnitScope
 from ihub.auth.api import AuthServiceProvider, build_admin_router, build_auth_router, require
 from ihub.auth.errors import AuthError
 from ihub.auth.factory import build_auth_service
@@ -123,11 +124,13 @@ def create_app(
             read=[Depends(require(Permission.MEMBERS_READ))] if guarded else [],
         )
     )
+    database = database_path or (lambda: get_settings().ihub_duckdb_path)
     app.include_router(
         build_explore_router(
-            database_path or (lambda: get_settings().ihub_duckdb_path),
+            database,
             read=[Depends(require(Permission.RESEARCH_READ))] if guarded else [],
             export=[Depends(require(Permission.RESEARCH_EXPORT))] if guarded else [],
+            unit_tables=UnitScope(database, roster_path).chart_tables,
         )
     )
     app.include_router(build_workspace_router())

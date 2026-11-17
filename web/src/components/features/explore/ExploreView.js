@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Alert,
@@ -21,20 +22,12 @@ import {
   Typography,
 } from 'antd';
 import {
-  AppstoreOutlined,
-  AreaChartOutlined,
-  BarChartOutlined,
   CheckSquareOutlined,
   CloseOutlined,
   CodeOutlined,
   FieldTimeOutlined,
   FileTextOutlined,
   FunctionOutlined,
-  GlobalOutlined,
-  HeatMapOutlined,
-  LineChartOutlined,
-  NumberOutlined,
-  PieChartOutlined,
   PlusOutlined,
   SaveOutlined,
   SearchOutlined,
@@ -42,20 +35,11 @@ import {
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import ChartView, { ResultTable } from '@/components/charts/ChartView';
-import { DEFAULT_OPTIONS, VIZ_TYPES } from '@/lib/viz';
+import { DEFAULT_OPTIONS, VIZ_TYPES, suggestedHeight } from '@/lib/viz';
+import { VIZ_ICONS } from './icons';
+import SaveChartModal from './SaveChartModal';
 import { bff, download, formFromParams, metricKey, querySpec } from './client';
 
-const VIZ_ICONS = {
-  table: <TableOutlined />,
-  big_number: <NumberOutlined />,
-  bar: <BarChartOutlined />,
-  line: <LineChartOutlined />,
-  area: <AreaChartOutlined />,
-  pie: <PieChartOutlined />,
-  treemap: <AppstoreOutlined />,
-  heatmap: <HeatMapOutlined />,
-  world_map: <GlobalOutlined />,
-};
 const TYPE_ICONS = { string: 'ABC', number: '#', year: <FieldTimeOutlined />, boolean: <CheckSquareOutlined /> };
 const OPERATORS = [
   ['==', 'equals'],
@@ -186,12 +170,13 @@ function AdhocMetric({ dataset, onAdd }) {
   );
 }
 
-export default function ExploreView({ datasets, chart, user, dashboards }) {
+export default function ExploreView({ datasets, chart, user, dashboards, preset = null }) {
   const router = useRouter();
   const { message } = App.useApp();
-  const initial = chart ? formFromParams(chart.params, chart.viz_type, chart.options) : DEFAULT_FORM;
+  const start = chart ?? preset;
+  const initial = start ? formFromParams(start.params, start.viz_type, start.options) : DEFAULT_FORM;
   const [form, setForm] = useState(initial);
-  const [name, setName] = useState(chart?.name ?? 'Untitled chart');
+  const [name, setName] = useState(chart?.name ?? preset?.name ?? 'Untitled chart');
   const [result, setResult] = useState(null);
   const [ranSpec, setRanSpec] = useState(null);
   const [samples, setSamples] = useState(null);
@@ -201,9 +186,7 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
   const [rowSearch, setRowSearch] = useState('');
   const [gallery, setGallery] = useState(false);
   const [showSql, setShowSql] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [saveForm, setSaveForm] = useState({ name: chart?.name ?? '', description: chart?.description ?? '', dashboard: null, asNew: false });
   const [dataTab, setDataTab] = useState('results');
   const ran = useRef(false);
 
@@ -269,34 +252,6 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
     download(await response.blob(), `${name || 'chart'}.csv`);
   };
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      const body = { name: saveForm.name || name, description: saveForm.description, viz_type: form.viz, params: spec, options: form.options };
-      const saved = chart && canEdit && !saveForm.asNew
-        ? await bff(`charts/${chart.chart_id}`, { method: 'PATCH', body })
-        : await bff('charts', { method: 'POST', body });
-      if (saveForm.dashboard) {
-        const board = await bff(`dashboards/${saveForm.dashboard}`);
-        if (!board.items.some((item) => item.chart_id === saved.chart_id)) {
-          await bff(`dashboards/${saveForm.dashboard}`, {
-            method: 'PATCH',
-            body: { items: [...board.items, { chart_id: saved.chart_id, width: 6, height: 8 }] },
-          });
-        }
-      }
-      message.success(saveForm.dashboard ? 'Chart saved and added to the dashboard.' : 'Chart saved.');
-      setSaveOpen(false);
-      setName(saved.name);
-      router.replace(`/explore?chart=${saved.chart_id}`);
-      router.refresh();
-    } catch (err) {
-      message.error(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const term = search.trim().toLowerCase();
   const metricsShown = dataset.metrics.filter((m) => !term || m.label.toLowerCase().includes(term));
   const columnsShown = dataset.columns.filter((c) => !term || c.label.toLowerCase().includes(term));
@@ -317,7 +272,10 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
     <div className="explore">
       {/* Dataset panel */}
       <aside className="explore__datasource" aria-label="Dataset">
-        <p className="explore__panel-title">Dataset</p>
+        <Link className="explore__back" href="/explore">
+          ← Ready-made charts
+        </Link>
+        <p className="explore__panel-title">What to explore</p>
         <Select
           className="w-full"
           value={form.dataset}
@@ -326,7 +284,7 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
           suffixIcon={<TableOutlined />}
         />
         <p className="explore__dataset-help">{dataset.description}</p>
-        <Input allowClear prefix={<SearchOutlined />} placeholder="Search metrics & columns" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input allowClear prefix={<SearchOutlined />} placeholder="Search measures and fields" value={search} onChange={(e) => setSearch(e.target.value)} />
         <Collapse
           ghost
           defaultActiveKey={['metrics', 'columns']}
@@ -336,7 +294,7 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
               key: 'metrics',
               label: (
                 <span>
-                  Metrics <small>Showing {metricsShown.length} of {dataset.metrics.length}</small>
+                  Measures <small>Showing {metricsShown.length} of {dataset.metrics.length}</small>
                 </span>
               ),
               children: (
@@ -358,7 +316,7 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
               key: 'columns',
               label: (
                 <span>
-                  Columns <small>Showing {columnsShown.length} of {dataset.columns.length}</small>
+                  Fields <small>Showing {columnsShown.length} of {dataset.columns.length}</small>
                 </span>
               ),
               children: (
@@ -387,11 +345,11 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
       <section className="explore__controls" aria-label="Chart controls">
         <div className="explore__actions">
           <Button type="primary" icon={<ThunderboltOutlined />} onClick={run} loading={loading} block>
-            RUN
+            UPDATE CHART
           </Button>
           <Tooltip title={canSave ? '' : 'Your role cannot save charts'}>
             <Button icon={<SaveOutlined />} disabled={!canSave} onClick={() => setSaveOpen(true)} block>
-              SAVE
+              SAVE CHART
             </Button>
           </Tooltip>
         </div>
@@ -401,26 +359,26 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
           items={[
             {
               key: 'data',
-              label: 'DATA',
+              label: 'BUILD',
               children: (
                 <div className="explore__control-scroll">
-                  <Section title="Chart Type">
-                    <ControlLabel>VISUALIZATION TYPE</ControlLabel>
+                  <Section title="Chart type">
+                    <ControlLabel>CHART TYPE</ControlLabel>
                     <button type="button" className="viz-picker" onClick={() => setGallery(true)}>
                       {VIZ_ICONS[form.viz]} {vizMeta?.label}
-                      <span className="viz-picker__more">View all charts</span>
+                      <span className="viz-picker__more">Change</span>
                     </button>
                   </Section>
-                  <Section title="Time">
-                    <ControlLabel>YEAR RANGE</ControlLabel>
+                  <Section title="Years">
+                    <ControlLabel>ONLY INCLUDE THESE YEARS</ControlLabel>
                     <Space.Compact className="w-full">
                       <InputNumber className="w-full" placeholder="From" min={1800} max={2200} value={form.yearFrom} onChange={(v) => update({ yearFrom: v })} />
                       <InputNumber className="w-full" placeholder="To" min={1800} max={2200} value={form.yearTo} onChange={(v) => update({ yearTo: v })} />
                     </Space.Compact>
-                    <p className="control-hint">{form.yearFrom || form.yearTo ? `${form.yearFrom ?? '-∞'} ≤ year ≤ ${form.yearTo ?? '∞'}` : 'No filter: every year'}</p>
+                    <p className="control-hint">{form.yearFrom || form.yearTo ? `${form.yearFrom ?? '-∞'} ≤ year ≤ ${form.yearTo ?? '∞'}` : 'Every year is included'}</p>
                   </Section>
-                  <Section title="Query">
-                    <ControlLabel>METRICS</ControlLabel>
+                  <Section title="What to show">
+                    <ControlLabel>WHAT TO MEASURE</ControlLabel>
                     <Select
                       className="w-full"
                       mode="multiple"
@@ -430,7 +388,7 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
                         ...form.metrics.filter((m) => typeof m !== 'string').map((m) => ({ value: metricKey(m), label: metricLabel(m) })),
                       ]}
                       onChange={(keys) => update({ metrics: form.metrics.filter((m) => keys.includes(metricKey(m))).concat(keys.filter((k) => !form.metrics.some((m) => metricKey(m) === k))) })}
-                      placeholder="Add metric"
+                      placeholder="Choose what to measure"
                     />
                     <div className="mt-8">
                       <AdhocMetric dataset={dataset} onAdd={(m) => !form.metrics.some((x) => metricKey(x) === metricKey(m)) && update({ metrics: [...form.metrics, m] })} />
@@ -441,11 +399,11 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
                         <Button size="small" type="text" icon={<PlusOutlined />} onClick={() => update({ filters: [...form.filters, { id: crypto.randomUUID(), column: undefined, op: '==', value: undefined }] })} aria-label="Add filter" />
                       }
                     >
-                      FILTERS
+                      ONLY INCLUDE
                     </ControlLabel>
                     {form.filters.length === 0 && (
                       <button type="button" className="dashed-add" onClick={() => update({ filters: [{ id: crypto.randomUUID(), column: undefined, op: '==', value: undefined }] })}>
-                        <PlusOutlined /> Add filter
+                        <PlusOutlined /> Add a condition
                       </button>
                     )}
                     {form.filters.map((filter) => (
@@ -458,30 +416,30 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
                       />
                     ))}
 
-                    <ControlLabel>GROUP BY</ControlLabel>
+                    <ControlLabel>BREAK DOWN BY</ControlLabel>
                     <Select
                       className="w-full"
                       mode="multiple"
                       value={form.groupby}
                       options={dataset.columns.filter((c) => c.groupable).map((c) => ({ value: c.name, label: c.label }))}
                       onChange={(groupby) => update({ groupby })}
-                      placeholder="Drop columns here or click"
+                      placeholder="For example Year or Publication type"
                       maxCount={5}
                     />
-                    <p className="control-hint">{dataset.columns.filter((c) => c.groupable).length} option(s)</p>
+                    <p className="control-hint">Each choice splits the chart further.</p>
 
                     <div className="control-grid">
                       <div>
-                        <ControlLabel>SERIES LIMIT</ControlLabel>
+                        <ControlLabel>SHOW THE TOP</ControlLabel>
                         <InputNumber className="w-full" min={1} max={100} value={form.seriesLimit} onChange={(v) => update({ seriesLimit: v })} placeholder="None" />
                       </div>
                       <div>
-                        <ControlLabel>ROW LIMIT</ControlLabel>
+                        <ControlLabel>MOST ROWS</ControlLabel>
                         <Select className="w-full" value={form.rowLimit} onChange={(v) => update({ rowLimit: v })} options={[10, 50, 100, 1000, 5000, 10000].map((v) => ({ value: v, label: v.toLocaleString('en-GB') }))} />
                       </div>
                     </div>
                     <Checkbox className="mt-12" checked={form.orderDesc} onChange={(e) => update({ orderDesc: e.target.checked })}>
-                      SORT DESCENDING
+                      LARGEST FIRST
                     </Checkbox>
                   </Section>
                 </div>
@@ -489,22 +447,34 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
             },
             {
               key: 'customize',
-              label: 'CUSTOMIZE',
+              label: 'STYLE',
               children: (
                 <div className="explore__control-scroll">
-                  <Section title="Chart Options">
+                  <Section title="Chart style">
                     <div className="switch-row">
                       <span>Legend</span>
                       <Switch size="small" checked={options.show_legend} onChange={(v) => setOption('show_legend', v)} />
                     </div>
                     <div className="switch-row">
-                      <span>Show values</span>
+                      <span>Show the numbers</span>
                       <Switch size="small" checked={options.show_values} onChange={(v) => setOption('show_values', v)} />
                     </div>
                     {['bar', 'area', 'line'].includes(form.viz) && (
                       <div className="switch-row">
-                        <span>Stacked</span>
+                        <span>Stack the groups</span>
                         <Switch size="small" checked={options.stacked} onChange={(v) => setOption('stacked', v)} />
+                      </div>
+                    )}
+                    {['bar', 'area'].includes(form.viz) && options.stacked && (
+                      <div className="switch-row">
+                        <span>Show as shares (100%)</span>
+                        <Switch size="small" checked={options.stack_percent} onChange={(v) => setOption('stack_percent', v)} />
+                      </div>
+                    )}
+                    {['bar', 'line', 'area', 'combo'].includes(form.viz) && (
+                      <div className="switch-row">
+                        <span>Logarithmic scale</span>
+                        <Switch size="small" checked={options.log_scale} onChange={(v) => setOption('log_scale', v)} />
                       </div>
                     )}
                     {form.viz === 'bar' && (
@@ -520,7 +490,7 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
                       </div>
                     )}
                   </Section>
-                  {['bar', 'line', 'area'].includes(form.viz) && (
+                  {['bar', 'line', 'area', 'combo'].includes(form.viz) && (
                     <Section title="Axes">
                       <ControlLabel>X AXIS TITLE</ControlLabel>
                       <Input value={options.x_label} onChange={(e) => setOption('x_label', e.target.value)} placeholder="From the group-by column" />
@@ -571,11 +541,11 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
 
         <div className={`explore__chart${altered ? ' explore__chart--stale' : ''}`}>
           <Spin spinning={loading}>
-            <ChartView viz={form.viz} result={result} options={options} height={420} />
+            <ChartView viz={form.viz} result={result} options={options} height={suggestedHeight(form.viz, result, options)} />
           </Spin>
           {altered && !loading && (
             <Button type="primary" className="explore__run-overlay" onClick={run}>
-              RUN QUERY
+              UPDATE CHART
             </Button>
           )}
         </div>
@@ -610,7 +580,7 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
         />
       </section>
 
-      <Modal title="Choose a visualization type" open={gallery} onCancel={() => setGallery(false)} footer={null} width={760}>
+      <Modal title="Choose a chart type" open={gallery} onCancel={() => setGallery(false)} footer={null} width={760}>
         <div className="viz-gallery">
           {VIZ_TYPES.map((v) => (
             <button
@@ -635,35 +605,20 @@ export default function ExploreView({ datasets, chart, user, dashboards }) {
         <p className="control-hint">Parameters: {JSON.stringify(result?.params ?? [])}</p>
       </Modal>
 
-      <Modal
-        title={chart ? 'Save chart' : 'Save new chart'}
+      <SaveChartModal
         open={saveOpen}
-        onCancel={() => setSaveOpen(false)}
-        onOk={save}
-        okText="Save"
-        confirmLoading={saving}
-      >
-        <div className="stack stack--sm">
-          {chart && canEdit && (
-            <Checkbox checked={saveForm.asNew} onChange={(e) => setSaveForm({ ...saveForm, asNew: e.target.checked })}>
-              Save as a new chart
-            </Checkbox>
-          )}
-          <ControlLabel>CHART NAME</ControlLabel>
-          <Input value={saveForm.name || name} onChange={(e) => setSaveForm({ ...saveForm, name: e.target.value })} maxLength={120} />
-          <ControlLabel>DESCRIPTION</ControlLabel>
-          <Input.TextArea value={saveForm.description} onChange={(e) => setSaveForm({ ...saveForm, description: e.target.value })} maxLength={500} rows={2} />
-          <ControlLabel>ADD TO DASHBOARD</ControlLabel>
-          <Select
-            className="w-full"
-            allowClear
-            placeholder="Optional"
-            value={saveForm.dashboard}
-            onChange={(dashboard) => setSaveForm({ ...saveForm, dashboard })}
-            options={dashboards.filter((d) => d.can_edit).map((d) => ({ value: d.dashboard_id, label: d.title }))}
-          />
-        </div>
-      </Modal>
+        onClose={() => setSaveOpen(false)}
+        chart={chart}
+        canEdit={canEdit}
+        name={name}
+        description={chart?.description ?? preset?.description ?? ''}
+        getBody={() => ({ viz_type: form.viz, params: spec, options: form.options })}
+        dashboards={dashboards}
+        onSaved={(saved) => {
+          setName(saved.name);
+          router.replace(`/explore?chart=${saved.chart_id}`);
+        }}
+      />
     </div>
   );
 }
