@@ -52,3 +52,8 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "N"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+filterwarnings = [
+    # Raised inside FastAPI's own TestClient import (third-party), not by iHub code.
+    # Remove when FastAPI ships a TestClient that no longer triggers it.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
