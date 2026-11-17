@@ -46,6 +46,15 @@ Set them in GitHub → **Settings → Environments → pipeline** (or **producti
 
 The sign-in secrets go in **both** environments because the Deploy job runs in `production` for a merge or a manual deploy, and in `pipeline` for the weekly redeploy; a secret missing from one would be dropped from the live app on that kind of deploy. Deploy writes each sign-in value that is set into the `api` container of `deploy/service.yaml` (unset values are left out) and never prints them. `IHUB_PUBLIC_URL` defaults to the service's own address. Note that values passed this way are visible to anyone who can view the Cloud Run service in Google Cloud; Secret Manager (ADR-008) is the stronger option for later.
 
+### Google OAuth callback
+
+For Google sign-in, the OAuth client must contain the exact HTTPS callback that the API sends to Google. In Google Cloud Console → **APIs & Services** → **Credentials** → the iHub web client, add:
+
+- **Authorized JavaScript origin:** `https://ihub-app-zvmmzc2oja-bq.a.run.app`
+- **Authorized redirect URI:** `https://ihub-app-zvmmzc2oja-bq.a.run.app/auth/google/callback`
+
+Set the same base address as the GitHub repository variable `IHUB_PUBLIC_URL`. `localhost` is only for local development and cannot receive the production OAuth callback. If Cloud Run reports a different generated service URL after a future recreation, update both places together.
+
 The Google Cloud resources were created once with [`scripts/gcp_setup.sh`](../scripts/gcp_setup.sh), run in Cloud Shell. It is safe to re-run and prints the values of the variables above.
 
 ## Sign-in (ADR-010)
