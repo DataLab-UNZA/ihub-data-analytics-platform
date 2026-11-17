@@ -1803,6 +1803,7 @@ a.bar-list__label {
 
 /* Sign-in: form panel on the left, image on the right (square, like the rest of the system). */
 .auth {
+  font-family: var(--font-roboto), Roboto, Arial, sans-serif;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   min-height: 100vh;
