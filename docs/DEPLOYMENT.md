@@ -39,8 +39,12 @@ To change who can approve: DataLab-UNZA organisation → **Teams** → `ihub-dep
 | `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `GCP_RUNTIME_SA` | repository **variables** (not secret) | Deploy, Pipeline |
 | `OPENALEX_MAILTO` | repository **variable** | Pipeline |
 | `OPENALEX_API_KEY`, `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `OJS_API_TOKEN` | **secrets of the `pipeline` environment** | Pipeline only |
+| `IHUB_AUTH_SECRET`, `IHUB_GOOGLE_CLIENT_SECRET`, `IHUB_SMTP_PASSWORD` | **secrets of both the `production` and `pipeline` environments** | Deploy (passed to the `api` container) |
+| `IHUB_GOOGLE_CLIENT_ID`, `IHUB_SMTP_HOST`, `IHUB_SMTP_PORT`, `IHUB_SMTP_USERNAME`, `IHUB_SMTP_FROM`, `IHUB_SMTP_SSL`, `IHUB_ALLOWED_EMAIL_DOMAIN`, `IHUB_BOOTSTRAP_ADMINS`, `IHUB_PUBLIC_URL` (optional) | repository **variables** | Deploy (passed to the `api` container) |
 
-Set them in GitHub → **Settings → Environments → pipeline → Environment secrets** (secrets) or **Settings → Secrets and variables → Actions → Variables** (variables). The API secrets live in the environment rather than the repository because the `pipeline` environment only runs on `main`: a workflow on a branch cannot read them. The running app needs no secrets. Every name is also in `.env.example` for local use.
+Set them in GitHub → **Settings → Environments → pipeline** (or **production**) **→ Environment secrets** (secrets) or **Settings → Secrets and variables → Actions → Variables** (variables). Secrets live in environments rather than the repository because those environments only run on `main`: a workflow on a branch cannot read them. Every name is also in `.env.example` for local use.
+
+The sign-in secrets go in **both** environments because the Deploy job runs in `production` for a merge or a manual deploy, and in `pipeline` for the weekly redeploy; a secret missing from one would be dropped from the live app on that kind of deploy. Deploy writes each sign-in value that is set into the `api` container of `deploy/service.yaml` (unset values are left out) and never prints them. `IHUB_PUBLIC_URL` defaults to the service's own address. Note that values passed this way are visible to anyone who can view the Cloud Run service in Google Cloud; Secret Manager (ADR-008) is the stronger option for later.
 
 The Google Cloud resources were created once with [`scripts/gcp_setup.sh`](../scripts/gcp_setup.sh), run in Cloud Shell. It is safe to re-run and prints the values of the variables above.
 
@@ -50,14 +54,12 @@ Production runs with `IHUB_REQUIRE_SIGN_IN=false` on both containers (`deploy/se
 store (Firestore, ADR-009) exists: Cloud Run's disk is temporary, so accounts would vanish. To switch sign-in on later:
 
 1. Create the Firestore store (ADR-009) and give `GCP_RUNTIME_SA` the `roles/datastore.user` role.
-2. Put the secrets in Secret Manager and mount them on the `api` container: `IHUB_AUTH_SECRET`,
-   `IHUB_GOOGLE_CLIENT_SECRET`, `IHUB_SMTP_PASSWORD`. Set the non-secret values as plain env: `IHUB_GOOGLE_CLIENT_ID`,
-   `IHUB_PUBLIC_URL` (the service URL), `IHUB_ALLOWED_EMAIL_DOMAIN=unza.ac.zm`, `IHUB_BOOTSTRAP_ADMINS`,
-   `IHUB_SMTP_HOST`, `IHUB_SMTP_PORT`, `IHUB_SMTP_USERNAME`, `IHUB_SMTP_FROM`.
+2. Add the sign-in secrets and variables in GitHub (table above). The next deploy passes them to the `api`
+   container. (Secret Manager, mounted on the `api` container, is the stronger alternative from ADR-008.)
 3. In the Google Cloud console, list `<service URL>/auth/google/callback` as an authorised redirect URI of the OAuth client.
 4. Remove `IHUB_REQUIRE_SIGN_IN` from both containers.
 
-Never put these values in GitHub variables, the repository or workflow logs.
+Never put the secret values in GitHub variables, the repository or workflow logs: only in environment secrets.
 
 ## How to roll back
 
