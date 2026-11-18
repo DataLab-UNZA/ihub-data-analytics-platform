@@ -121,6 +121,9 @@ jobs:
           SHORT_REF="$(echo "$REF" | cut -c1-12)"
           API_IMAGE="$REGISTRY/api:$REF"
           WEB_IMAGE="$REGISTRY/web:$REF"
+          # Team administrators are always restored at sign-in, so nobody is locked out;
+          # IHUB_BOOTSTRAP_ADMINS (repository variable) adds more.
+          IHUB_BOOTSTRAP_ADMINS="bruce.mainza@cs.unza.zm,mainzabruce06@gmail.com${IHUB_BOOTSTRAP_ADMINS:+,$IHUB_BOOTSTRAP_ADMINS}"
           # Google redirects sign-ins back to the app's own address, so default to it.
           if [ -z "$IHUB_PUBLIC_URL" ]; then
             IHUB_PUBLIC_URL="$(gcloud run services describe "$SERVICE" --region "${{ vars.GCP_REGION }}" \
