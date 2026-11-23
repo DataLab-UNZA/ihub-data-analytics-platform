@@ -57,7 +57,8 @@ def test_a_fellow_takes_the_school_of_their_department_or_none(tmp_path: Path) -
     rows = ["1,MUBITA,KAIKO,,Mr,LECTURER,SDF"]
     authors = [("a1", "Kaiko Mubita")]
     assert link(tmp_path, rows, authors).stats.fellows_without_evidence == 1
-    assert "a1" not in link(tmp_path, rows, authors).links
+    alone = link(tmp_path, rows, authors).links["a1"]  # listed as a member, but nothing to credit
+    assert (alone.basis, alone.schools, alone.staff_id) == (at.FELLOW_NO_SCHOOL, frozenset(), "1")
     result = link(tmp_path, rows, authors, {"a1": frozenset({EDUCATION})})
     assert result.links["a1"] == at.AuthorLink(frozenset({EDUCATION}), at.FELLOW, "exact")
 

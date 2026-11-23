@@ -271,25 +271,45 @@ def test_editing_the_overrides_file_is_picked_up(pinnable_db: Path, tmp_path: Pa
     assert [r["name"] for r in client.get("/api/members").json()["rows"]] == ["Bob Kakanda"]
 
 
-def test_the_near_miss_script_suggests_a_repeated_given_name(tmp_path: Path) -> None:
-    import importlib.util
+# --- staff development fellows (no school on the roster) -----------------------------------------
 
-    spec = importlib.util.spec_from_file_location(
-        "staff_near_misses", Path(__file__).parent.parent / "scripts" / "staff_near_misses.py"
-    )
-    assert spec and spec.loader
-    script = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(script)
 
-    roster = load_roster(
-        roster_with(tmp_path, "9,KAKANDA,MUKELABAI ALFRED,,Dr,LECTURER,Education\n")
-    )
+def test_a_fellow_is_listed_even_with_no_school(insights_db: Path, tmp_path: Path) -> None:
+    roster = roster_with(tmp_path, "1001,MWANSA,ALICE,,Dr,LECTURER,SDF\n")
+    client = client_for(insights_db, roster)
+    row = client.get("/api/members").json()["rows"][0]
+    assert (row["name"], row["fellow"], row["school"]) == ("Alice Mwansa", True, None)
+    assert row["publications"] == 4 and "1001" not in str(row)
+    # ... but with no school there is nothing to credit and no unit to filter by.
+    credit = client.get("/api/organisation").json()["school_credit"]
+    assert all(s["roster_publications"] == 0 for s in credit["schools"])
+    assert client.get("/api/members", params={"unit": "School of Medicine"}).json()["rows"] == []
+
+
+def test_a_fellow_with_department_evidence_takes_that_school(tmp_path: Path) -> None:
+    from ihub.staff import attribution as at
+
+    roster = load_roster(roster_with(tmp_path, "1001,MWANSA,ALICE,,Dr,LECTURER,SDF\n"))
     assert roster is not None
-    member = roster.members[0]
-    authors = [
-        ("k1", "Mukelabai Mukelabai", frozenset({"mukelabai"}), ["mukelabai", "mukelabai"]),
-        ("k2", "Mukelabai", frozenset({"mukelabai"}), ["mukelabai"]),  # one word: too vague
-        ("k3", "Alfred Kakanda", frozenset({"alfred", "kakanda"}), ["alfred", "kakanda"]),
-        ("k4", "Bob Smith", frozenset({"bob", "smith"}), ["bob", "smith"]),
-    ]
-    assert [key for key, _ in script.candidates(member, authors)] == ["k1", "k3"]
+    evidence = {"a1": frozenset({"School of Medicine"}), "a2": frozenset()}
+    result = at.link_authors([("a1", "Alice Mwansa"), ("a2", "Mwansa Alice")], roster, evidence)
+    with_school, without = result.links["a1"], result.links["a2"]
+    assert (with_school.basis, with_school.schools, with_school.staff_id) == (
+        at.FELLOW,
+        frozenset({"School of Medicine"}),
+        "1001",
+    )
+    assert (without.basis, without.schools, without.staff_id) == (
+        at.FELLOW_NO_SCHOOL,
+        frozenset(),
+        "1001",
+    )
+    assert result.stats.fellows_without_evidence == 1  # still counted as before
+    assert result.stats.roster_linked == 1  # a fellow with no school adds no school credit
+
+
+def test_two_fellows_with_the_same_name_are_not_merged(insights_db: Path, tmp_path: Path) -> None:
+    roster = roster_with(
+        tmp_path, "1001,MWANSA,ALICE,,Dr,LECTURER,SDF\n", "1002,MWANSA,ALICE,,Ms,LECTURER,SDF\n"
+    )
+    assert client_for(insights_db, roster).get("/api/members").json()["rows"] == []

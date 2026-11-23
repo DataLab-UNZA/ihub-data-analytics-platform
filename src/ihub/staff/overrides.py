@@ -7,6 +7,10 @@ next to the roster, ``staff_author_overrides.csv``, with the columns ``Staff ID`
 ``Author ID``. The author ID is an OpenAlex author ID (``A5000315992``) or an ORCID iD
 (``0000-0002-3868-4319``); full URLs are accepted. The file is private HR data, like the
 roster, and is read from a git-ignored location.
+
+Suggested spellings are reviewed the same way: ``scripts/staff_name_suggestions.py`` writes
+``staff_name_suggestions.csv`` and a person types ``yes`` in the Confirm column of the rows that
+are the right person. Only confirmed rows count (:func:`load_confirmed`).
 """
 
 from __future__ import annotations
@@ -18,6 +22,10 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 OVERRIDES_FILENAME = "staff_author_overrides.csv"
+SUGGESTIONS_FILENAME = "staff_name_suggestions.csv"
+
+#: What a reviewer may type in the Confirm column to accept a suggestion.
+YES = frozenset({"yes", "y", "true", "1"})
 
 _ORCID = re.compile(r"\d{4}-\d{4}-\d{4}-\d{3}[\dX]")
 _OPENALEX = re.compile(r"A\d+")
@@ -26,6 +34,11 @@ _OPENALEX = re.compile(r"A\d+")
 def overrides_path(roster_path: Path) -> Path:
     """Return where the overrides file sits: next to the roster."""
     return Path(roster_path).with_name(OVERRIDES_FILENAME)
+
+
+def suggestions_path(roster_path: Path) -> Path:
+    """Return where the reviewed suggestions sit: next to the roster."""
+    return Path(roster_path).with_name(SUGGESTIONS_FILENAME)
 
 
 def normalise_author_id(text: str | None) -> str | None:
@@ -46,6 +59,35 @@ def load_overrides(path: Path) -> dict[str, frozenset[str]]:
             if staff_id and author_id:
                 pinned[staff_id].add(author_id)
     return {staff_id: frozenset(ids) for staff_id, ids in pinned.items()}
+
+
+def load_confirmed(path: Path) -> dict[str, frozenset[str]]:
+    """Read the suggestions file and keep the rows a person confirmed (``yes`` in Confirm).
+
+    The file is written by ``scripts/staff_name_suggestions.py`` and reviewed in a spreadsheet.
+    Rows with anything else in Confirm, or without a usable author ID, are ignored.
+    """
+    if not Path(path).is_file():
+        return {}
+    confirmed: dict[str, set[str]] = defaultdict(set)
+    with open(path, encoding="utf-8-sig", newline="") as handle:
+        for row in csv.DictReader(handle):
+            if str(row.get("Confirm") or "").strip().lower() not in YES:
+                continue
+            staff_id = str(row.get("Staff ID") or "").strip()
+            author_id = normalise_author_id(row.get("Author ID"))
+            if staff_id and author_id:
+                confirmed[staff_id].add(author_id)
+    return {staff_id: frozenset(ids) for staff_id, ids in confirmed.items()}
+
+
+def merge(*sources: Mapping[str, frozenset[str]]) -> dict[str, frozenset[str]]:
+    """Combine several staff ID -> author IDs maps (hand-written pins and confirmed suggestions)."""
+    merged: dict[str, set[str]] = defaultdict(set)
+    for source in sources:
+        for staff_id, ids in source.items():
+            merged[staff_id] |= ids
+    return {staff_id: frozenset(ids) for staff_id, ids in merged.items()}
 
 
 def pin_authors(

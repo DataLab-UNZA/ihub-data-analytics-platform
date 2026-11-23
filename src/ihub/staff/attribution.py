@@ -9,6 +9,8 @@ An author is linked to a school in one of four ways, recorded as the link's ``ba
   :mod:`ihub.staff.overrides`), for names the matching cannot connect;
 * ``department_for_fellow``: the name fits a staff development fellow (no school in the roster),
   so the school comes from the author's department evidence;
+* ``fellow_no_school``: the same, but no department evidence exists, so there is no school to
+  credit. The fellow is still listed in the Members directory;
 * ``department_only``: the name is not on the roster but the pipeline found the author's
   department. This is the older, supplementary evidence, reported separately.
 
@@ -19,7 +21,7 @@ returned; no name, staff ID or per-person result leaves this module.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Container, Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -27,17 +29,30 @@ from ihub.mart import staff_links
 from ihub.mart.research import YearRange
 from ihub.staff.matching import INITIAL, RosterIndex, match_name
 from ihub.staff.names import parse_person
-from ihub.staff.overrides import load_overrides, overrides_path, pin_authors
+from ihub.staff.overrides import (
+    load_confirmed,
+    load_overrides,
+    merge,
+    overrides_path,
+    pin_authors,
+    suggestions_path,
+)
 from ihub.staff.roster import Roster, load_roster
 
 ROSTER = "roster"
 TIEBREAK = "roster_tiebreak"
 OVERRIDE = "roster_override"
 FELLOW = "department_for_fellow"
+FELLOW_NO_SCHOOL = "fellow_no_school"
 DEPARTMENT_ONLY = "department_only"
 
 #: Link bases that come from the roster (the rest is supplementary department evidence).
 ROSTER_BASES = frozenset({ROSTER, TIEBREAK, FELLOW, OVERRIDE})
+
+#: Bases that tie an author to a named staff member, for the Members directory. A fellow with
+#: no department evidence has no school to credit, so it is not a roster basis for school
+#: credit, but the person is still a member.
+MEMBER_BASES = ROSTER_BASES | {FELLOW_NO_SCHOOL}
 
 
 @dataclass(frozen=True)
@@ -81,7 +96,7 @@ class LinkResult:
     matched_staff_by_school: dict[str, int] = field(default_factory=dict)
 
 
-def _only_person(candidates: Iterable, schools: set[str]) -> str | None:
+def _only_person(candidates: Iterable, schools: Container[str | None]) -> str | None:
     """Return the staff ID when exactly one roster entry fits in ``schools``, else None."""
     ids = {c.member.staff_id for c in candidates if c.member.school in schools}
     return next(iter(ids)) if len(ids) == 1 else None
@@ -155,9 +170,12 @@ def link_authors(
             )
             tiebroken += 1
         elif known:  # only staff development fellows fit: take the school from the department
-            links[key] = AuthorLink(known, FELLOW, rule)
+            links[key] = AuthorLink(known, FELLOW, rule, _only_person(candidates, {None}))
         else:
             fellows_blank += 1
+            links[key] = AuthorLink(
+                frozenset(), FELLOW_NO_SCHOOL, rule, _only_person(candidates, {None})
+            )
             continue
         by_rule[rule] += 1
         for candidate in candidates:
@@ -261,7 +279,7 @@ def aggregate(
     )
 
 
-_cache: dict[tuple[str, int, str, int, int], tuple[Roster, LinkResult]] = {}
+_cache: dict[tuple[str, int, str, int, int, int], tuple[Roster, LinkResult]] = {}
 
 
 def _mtime(path: Path) -> int:
@@ -276,8 +294,10 @@ def linked_authors(db_path: Path, roster_path: Path) -> tuple[Roster, LinkResult
     if not Path(roster_path).is_file() or not Path(db_path).is_file():
         return None
     overrides_file = overrides_path(roster_path)
+    suggestions_file = suggestions_path(roster_path)
     changed = _mtime(overrides_file) if overrides_file.is_file() else 0
-    key = (str(db_path), _mtime(db_path), str(roster_path), _mtime(roster_path), changed)
+    reviewed = _mtime(suggestions_file) if suggestions_file.is_file() else 0
+    key = (str(db_path), _mtime(db_path), str(roster_path), _mtime(roster_path), changed, reviewed)
     if key not in _cache:
         roster = load_roster(roster_path)
         if roster is None:
@@ -286,7 +306,8 @@ def linked_authors(db_path: Path, roster_path: Path) -> tuple[Roster, LinkResult
         evidence = staff_links.author_department_schools(db_path)
         _cache.clear()  # keep one entry: a rebuilt database or roster replaces the old one
         pinned = pin_authors(
-            load_overrides(overrides_file), staff_links.author_identifiers(db_path)
+            merge(load_overrides(overrides_file), load_confirmed(suggestions_file)),
+            staff_links.author_identifiers(db_path),
         )
         _cache[key] = (roster, link_authors(authors, roster, evidence, pinned))
     return _cache[key]
