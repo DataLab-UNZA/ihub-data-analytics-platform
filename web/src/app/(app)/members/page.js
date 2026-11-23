@@ -38,6 +38,12 @@ const COLUMNS = [
   },
 ];
 
+/** The unit shown for a member: a fellow is marked, since the roster gives fellows no school. */
+function unitLabel(row) {
+  if (!row.fellow) return row.school ?? '–';
+  return row.school ? `${row.school} (staff development fellow)` : 'Staff development fellow';
+}
+
 export default async function MembersPage({ searchParams }) {
   const query = readMemberQuery(await searchParams);
   const data = await loadMembers(await readFilters(), query);
@@ -48,7 +54,7 @@ export default async function MembersPage({ searchParams }) {
     id: row.member_id,
     title: row.title || '–',
     member: row.name,
-    unit: row.school ?? '–',
+    unit: unitLabel(row),
     orcid: row.orcid,
     orcidUrl: row.orcid_url,
     records: formatNumber(row.publications),
