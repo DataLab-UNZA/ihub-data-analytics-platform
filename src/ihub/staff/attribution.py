@@ -29,14 +29,7 @@ from ihub.mart import staff_links
 from ihub.mart.research import YearRange
 from ihub.staff.matching import INITIAL, RosterIndex, match_name
 from ihub.staff.names import parse_person
-from ihub.staff.overrides import (
-    load_confirmed,
-    load_overrides,
-    merge,
-    overrides_path,
-    pin_authors,
-    suggestions_path,
-)
+from ihub.staff.overrides import load_overrides, overrides_path, pin_authors
 from ihub.staff.roster import Roster, load_roster
 
 ROSTER = "roster"
@@ -279,7 +272,7 @@ def aggregate(
     )
 
 
-_cache: dict[tuple[str, int, str, int, int, int], tuple[Roster, LinkResult]] = {}
+_cache: dict[tuple[str, int, str, int, int], tuple[Roster, LinkResult]] = {}
 
 
 def _mtime(path: Path) -> int:
@@ -294,10 +287,8 @@ def linked_authors(db_path: Path, roster_path: Path) -> tuple[Roster, LinkResult
     if not Path(roster_path).is_file() or not Path(db_path).is_file():
         return None
     overrides_file = overrides_path(roster_path)
-    suggestions_file = suggestions_path(roster_path)
     changed = _mtime(overrides_file) if overrides_file.is_file() else 0
-    reviewed = _mtime(suggestions_file) if suggestions_file.is_file() else 0
-    key = (str(db_path), _mtime(db_path), str(roster_path), _mtime(roster_path), changed, reviewed)
+    key = (str(db_path), _mtime(db_path), str(roster_path), _mtime(roster_path), changed)
     if key not in _cache:
         roster = load_roster(roster_path)
         if roster is None:
@@ -306,8 +297,7 @@ def linked_authors(db_path: Path, roster_path: Path) -> tuple[Roster, LinkResult
         evidence = staff_links.author_department_schools(db_path)
         _cache.clear()  # keep one entry: a rebuilt database or roster replaces the old one
         pinned = pin_authors(
-            merge(load_overrides(overrides_file), load_confirmed(suggestions_file)),
-            staff_links.author_identifiers(db_path),
+            load_overrides(overrides_file), staff_links.author_identifiers(db_path)
         )
         _cache[key] = (roster, link_authors(authors, roster, evidence, pinned))
     return _cache[key]

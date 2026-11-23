@@ -17,7 +17,7 @@ from ihub.mart import coverage, staff_links, units
 from ihub.mart.insights import UNASSIGNED_UNIT
 from ihub.mart.research import YearRange, year_bounds
 from ihub.staff import attribution
-from ihub.staff.overrides import overrides_path, suggestions_path
+from ihub.staff.overrides import overrides_path
 
 #: Publications with no roster-linked school, shown as a unit of their own.
 NOT_CREDITED = "Not credited to a school"
@@ -101,7 +101,6 @@ class UnitScope:
             str(roster or ""),
             _stamp(roster),
             _stamp(overrides_path(roster) if roster else None),
-            _stamp(suggestions_path(roster) if roster else None),
         )
         cached = _chart_cache.get(key)
         if cached is None:

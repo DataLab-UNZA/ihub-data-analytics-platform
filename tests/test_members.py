@@ -271,6 +271,30 @@ def test_editing_the_overrides_file_is_picked_up(pinnable_db: Path, tmp_path: Pa
     assert [r["name"] for r in client.get("/api/members").json()["rows"]] == ["Bob Kakanda"]
 
 
+def test_the_near_miss_script_suggests_a_repeated_given_name(tmp_path: Path) -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "staff_near_misses", Path(__file__).parent.parent / "scripts" / "staff_near_misses.py"
+    )
+    assert spec and spec.loader
+    script = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(script)
+
+    roster = load_roster(
+        roster_with(tmp_path, "9,KAKANDA,MUKELABAI ALFRED,,Dr,LECTURER,Education\n")
+    )
+    assert roster is not None
+    member = roster.members[0]
+    authors = [
+        ("k1", "Mukelabai Mukelabai", frozenset({"mukelabai"}), ["mukelabai", "mukelabai"]),
+        ("k2", "Mukelabai", frozenset({"mukelabai"}), ["mukelabai"]),  # one word: too vague
+        ("k3", "Alfred Kakanda", frozenset({"alfred", "kakanda"}), ["alfred", "kakanda"]),
+        ("k4", "Bob Smith", frozenset({"bob", "smith"}), ["bob", "smith"]),
+    ]
+    assert [key for key, _ in script.candidates(member, authors)] == ["k1", "k3"]
+
+
 # --- staff development fellows (no school on the roster) -----------------------------------------
 
 
