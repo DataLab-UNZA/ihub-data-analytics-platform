@@ -2,6 +2,7 @@ import { apiGet } from '@/lib/api';
 import { countryName, mapPosition } from '@/lib/countries';
 import { yearParams } from '@/lib/filters-server';
 import { capitalise, formatNumber, formatShare } from '@/lib/format';
+import { sourceCounts } from '@/lib/sources';
 
 const TONES = [undefined, 'teal', 'blue'];
 const tone = (index) => TONES[index % TONES.length];
@@ -134,17 +135,108 @@ export async function loadSources() {
   };
 }
 
-/** Builds the organisation tree (university > school > unit) from school and unit totals. */
-export async function loadOrganisation(filters) {
-  const data = await apiGet('/api/organisation', yearParams(filters));
+/** Unit names the data service uses for the publications no school is credited with. */
+const NOT_CREDITED = 'Not credited to a school';
+const UNASSIGNED = 'Unassigned department';
+
+const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+/** School credit from the staff roster (ADR-012), shaped for the screen. School-level numbers only. */
+function creditView(credit) {
+  const { stats } = credit;
+  const share = credit.total_publications ? credit.credited_by_roster / credit.total_publications : 0;
+  return {
+    coverage: {
+      total: credit.total_publications,
+      byRoster: credit.credited_by_roster,
+      any: credit.credited_any,
+      share: formatShare(share),
+    },
+    stats: {
+      authors: stats.authors_considered,
+      linked: stats.roster_linked,
+      departmentOnly: stats.department_only,
+      ambiguous: stats.ambiguous,
+      staffMatched: stats.roster_staff_matched,
+      headcount: stats.roster_headcount,
+    },
+    bars: credit.schools
+      .filter((school) => school.roster_publications > 0)
+      .map((school, index) => ({
+        label: school.school,
+        value: school.roster_publications,
+        tone: [undefined, 'teal', 'blue'][index % 3],
+      })),
+    rows: credit.schools.map((school) => ({
+      id: slug(school.school),
+      school: school.school,
+      roster: formatNumber(school.roster_publications),
+      any: formatNumber(school.publications),
+      authors: formatNumber(school.roster_authors),
+      staff: `${formatNumber(school.staff_matched)} of ${formatNumber(school.staff_in_roster)}`,
+    })),
+  };
+}
+
+/** Tree of the university and its schools, credited through the staff roster. */
+function rosterTree(credit, total, sources) {
+  const view = creditView(credit);
+  const first = Math.max(0, credit.schools.findIndex((school) => school.roster_publications > 0));
+  const schools = credit.schools.map((school, index) => ({
+    id: `school-${slug(school.school)}`,
+    name: school.school,
+    kind: 'Unit',
+    outputs: formatNumber(school.roster_publications),
+    count: school.roster_publications,
+    unit: school.school,
+    sources: sourceCounts(sources.sources, sources.by_unit[school.school]),
+    childrenLabel: `${formatNumber(school.roster_authors)} authors matched`,
+    selected: index === first,
+    details: [
+      ['Publications (staff roster)', formatNumber(school.roster_publications)],
+      ['Including department evidence', formatNumber(school.publications)],
+      ['Staff matched to an author', `${formatNumber(school.staff_matched)} of ${formatNumber(school.staff_in_roster)}`],
+    ],
+  }));
+  const uncredited = Math.max(0, total - credit.credited_by_roster);
+  schools.push({
+    id: 'school-not-credited',
+    name: 'Not credited to a school',
+    kind: 'Unit',
+    outputs: formatNumber(uncredited),
+    count: uncredited,
+    inPie: false, // the rest of the corpus, not a unit: it would dwarf every school
+    unit: NOT_CREDITED,
+    sources: sourceCounts(sources.sources, sources.by_unit[NOT_CREDITED]),
+    childrenLabel: 'no author on the staff roster',
+    details: [['Publications with no roster-linked school', formatNumber(uncredited)]],
+  });
+  return {
+    id: 'unza',
+    name: 'University of Zambia',
+    kind: 'Organisation',
+    outputs: formatNumber(total),
+    count: total,
+    unit: null,
+    sources: sourceCounts(sources.sources, sources.all),
+    childrenLabel: `${credit.schools.length} units`,
+    expanded: true,
+    details: [
+      ['Credited to at least one school', `${formatNumber(credit.credited_by_roster)} (${view.coverage.share})`],
+      ['Including department evidence', formatNumber(credit.credited_any)],
+    ],
+    children: schools,
+  };
+}
+
+/** Tree of the university and its schools from department evidence (used when there is no roster). */
+function departmentTree(data, sources) {
   const unitsBySchool = new Map();
   for (const unit of data.units) {
     const key = unit.school ?? unit.name;
     if (!unitsBySchool.has(key)) unitsBySchool.set(key, []);
     unitsBySchool.get(key).push(unit);
   }
-
-  const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const defaultIndex = Math.max(0, data.schools.findIndex((school) => school.school !== 'Unassigned department'));
   const schools = data.schools.map((school, index) => {
     const children = (unitsBySchool.get(school.school) ?? [])
@@ -154,6 +246,9 @@ export async function loadOrganisation(filters) {
         name: unit.name,
         kind: capitalise(unit.unit_type),
         outputs: formatNumber(unit.publications),
+        count: unit.publications,
+        unit: school.school, // lists exist per school, so a department links to its school
+        sources: null,
         childrenLabel: '0 units',
       }));
     return {
@@ -161,25 +256,44 @@ export async function loadOrganisation(filters) {
       name: school.school,
       kind: 'Unit',
       outputs: formatNumber(school.publications),
+      count: school.publications,
+      inPie: school.school !== UNASSIGNED,
+      unit: school.school,
+      sources: sourceCounts(sources.sources, sources.by_unit[school.school]),
       childrenLabel: `${children.length} unit${children.length === 1 ? '' : 's'}`,
       expanded: index === defaultIndex,
       selected: index === defaultIndex,
       children,
     };
   });
+  return {
+    id: 'unza',
+    name: 'University of Zambia',
+    kind: 'Organisation',
+    outputs: formatNumber(data.total_publications),
+    count: data.total_publications,
+    unit: null,
+    sources: sourceCounts(sources.sources, sources.all),
+    childrenLabel: `${schools.length} units`,
+    expanded: true,
+    children: schools,
+  };
+}
 
+/**
+ * Loads the organisation screen. With the private staff roster (ADR-012) schools are credited through
+ * their authors; without it the screen shows the department-based counts.
+ */
+export async function loadOrganisation(filters) {
+  const data = await apiGet('/api/organisation', yearParams(filters));
+  const credit = data.school_credit ?? null;
+  const sources = data.unit_sources;
+  const tree = credit ? rosterTree(credit, data.total_publications, sources) : departmentTree(data, sources);
   return {
     years: data.years,
-    tree: {
-      id: 'unza',
-      name: 'University of Zambia',
-      kind: 'Organisation',
-      outputs: formatNumber(data.total_publications),
-      childrenLabel: `${schools.length} units`,
-      expanded: true,
-      children: schools,
-    },
-    schoolCount: schools.length,
+    tree,
+    credit: credit ? creditView(credit) : null,
+    schoolCount: tree.children.length,
     unitCount: data.units.length,
   };
 }

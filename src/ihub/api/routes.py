@@ -11,9 +11,11 @@ from typing import Annotated, Any
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response
 
+from ihub.api.units import UnitScope
 from ihub.mart import coverage, insights, research
 from ihub.mart.research import PublicationFilter, YearRange
 from ihub.mart.status import last_pipeline_run
+from ihub.staff import attribution
 
 MAX_PAGE_SIZE = 100
 PREVIEW_ROWS = 10
@@ -24,6 +26,10 @@ Types = Annotated[list[str] | None, Query(alias="type")]
 Statuses = Annotated[list[str] | None, Query(alias="oa_status")]
 Venues = Annotated[list[str] | None, Query(alias="venue")]
 Sources = Annotated[list[str] | None, Query(alias="source")]
+Unit = Annotated[
+    str | None,
+    Query(description="Only publications of this unit (a school), as listed by /api/filters"),
+]
 
 
 def _share(part: int, whole: int) -> float:
@@ -39,6 +45,7 @@ def build_router(
     *,
     read: Sequence[Any] = (),
     export: Sequence[Any] = (),
+    staff_roster_path: Callable[[], Path | None] | None = None,
 ) -> APIRouter:
     """Create the router; ``database_path`` is called per request so tests can swap the file.
 
@@ -47,6 +54,29 @@ def build_router(
     ``require(research:read)`` and ``require(research:export)`` when sign-in is required.
     """
     router = APIRouter(prefix="/api")
+    scope = UnitScope(database_path, staff_roster_path or (lambda: None))
+
+    def school_credit(db: Path, years: YearRange, total_publications: int) -> dict[str, Any] | None:
+        """Schools credited through the private staff roster (ADR-012), or None without one.
+
+        The payload holds school-level numbers and match statistics only: never a name, a staff
+        ID or a per-person result.
+        """
+        roster = staff_roster_path() if staff_roster_path else None
+        if roster is None:
+            return None
+        report = attribution.school_credit(db, roster, years, total_publications)
+        if report is None:
+            return None
+        return {
+            "source": "staff_roster",
+            "total_publications": report.total_publications,
+            "credited_by_roster": report.credited_by_roster,
+            "credited_any": report.credited_any,
+            "schools": [asdict(school) for school in report.schools],
+            "stats": asdict(report.stats),
+        }
+
     data = APIRouter(dependencies=list(read))
 
     def years_from(start: int | None, end: int | None) -> YearRange:
@@ -73,7 +103,7 @@ def build_router(
         db = database_path()
         options = research.filter_options(db)
         bounds = research.year_bounds(db)
-        schools = [s.school for s in insights.school_outputs(db, bounds)]
+        schools = scope.names(bounds)
         return {
             "years": asdict(bounds),
             "types": options.types,
@@ -104,6 +134,7 @@ def build_router(
             ],
             "top_venues": [asdict(v) for v in research.top_venues(db, years, limit=5)],
             "schools": [asdict(s) for s in insights.school_outputs(db, years)],
+            "school_credit": school_credit(db, years, current.publications),
             "collaboration": {
                 "summary": asdict(insights.collaboration_summary(db, years)),
                 "countries": [asdict(c) for c in insights.top_countries(db, years, limit=8)],
@@ -118,7 +149,9 @@ def build_router(
         venue: list[str] | None,
         source: list[str] | None,
         q: str,
+        unit: str | None = None,
     ) -> PublicationFilter:
+        """One filter for the list, the count, the export and the breakdown (the shared logic)."""
         return PublicationFilter(
             years=years,
             types=tuple(type_ or ()),
@@ -126,6 +159,7 @@ def build_router(
             venues=tuple(venue or ()),
             sources=tuple(source or ()),
             search=q,
+            publication_keys=scope.keys(unit, years) if unit else None,
         )
 
     @data.get("/publications")
@@ -137,12 +171,15 @@ def build_router(
         venue: Venues = None,
         source: Sources = None,
         q: str = "",
+        unit: Unit = None,
         page: Annotated[int, Query(ge=1)] = 1,
         page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = 10,
     ) -> dict[str, Any]:
         """One page of de-duplicated publications matching the filters."""
         db = database_path()
-        selected = publication_filter(years_from(start, end), type_, oa_status, venue, source, q)
+        selected = publication_filter(
+            years_from(start, end), type_, oa_status, venue, source, q, unit
+        )
         total = research.count_publications(db, selected)
         rows = research.publications(db, selected, limit=page_size, offset=(page - 1) * page_size)
         return {
@@ -162,16 +199,43 @@ def build_router(
         venue: Venues = None,
         source: Sources = None,
         q: str = "",
+        unit: Unit = None,
     ) -> Response:
         """Every publication matching the filters, as a CSV download."""
         db = database_path()
-        selected = publication_filter(years_from(start, end), type_, oa_status, venue, source, q)
+        selected = publication_filter(
+            years_from(start, end), type_, oa_status, venue, source, q, unit
+        )
         rows = research.publications(db, selected, limit=None)
         return Response(
             research.publications_to_csv(rows),
             media_type="text/csv; charset=utf-8",
             headers={"Content-Disposition": 'attachment; filename="ihub-publications.csv"'},
         )
+
+    @data.get("/publications-breakdown")
+    def publication_breakdown(
+        start: Start = None,
+        end: End = None,
+        type_: Types = None,
+        oa_status: Statuses = None,
+        venue: Venues = None,
+        source: Sources = None,
+        q: str = "",
+        unit: Unit = None,
+    ) -> dict[str, Any]:
+        """The publications matching the same filters as the list, split by type and source."""
+        selected = publication_filter(
+            years_from(start, end), type_, oa_status, venue, source, q, unit
+        )
+        counts = research.publication_breakdown(database_path(), selected)
+        return {
+            "total": research.count_publications(database_path(), selected),
+            "types": [{"type": label, "publications": n} for label, n in counts.types],
+            "sources": [
+                {"code": code, "name": name, "publications": n} for code, name, n in counts.sources
+            ],
+        }
 
     @data.get("/publications/{publication_key}")
     def publication(publication_key: str) -> dict[str, Any]:
@@ -209,11 +273,14 @@ def build_router(
         """Output per school and per UNZA unit for a period."""
         db = database_path()
         years = years_from(start, end)
+        total = research.headline_counts(db, years).publications
         return {
             "years": asdict(years),
-            "total_publications": research.headline_counts(db, years).publications,
+            "total_publications": total,
             "schools": [asdict(s) for s in insights.school_outputs(db, years)],
+            "school_credit": school_credit(db, years, total),
             "units": [asdict(u) for u in insights.unit_outputs(db, years)],
+            "unit_sources": scope.source_breakdown(years),
         }
 
     @data.get("/collaboration")

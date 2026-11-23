@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { localRedirect } from '@/lib/redirect';
 import { apiPost } from '@/lib/api';
 import { PENDING_COOKIE, readPending, setFlash, setTokens, forbiddenOrigin, sameOrigin } from '@/lib/session';
 
@@ -9,7 +9,7 @@ export async function POST(request) {
   }
   const pending = readPending(request.cookies.get(PENDING_COOKIE)?.value);
   if (!pending) {
-    const response = NextResponse.redirect(new URL('/login', request.url), 303);
+    const response = localRedirect('/login');
     setFlash(response, request, 'Your sign-in attempt expired. Ask for a new code.');
     return response;
   }
@@ -20,11 +20,11 @@ export async function POST(request) {
 
   const result = await apiPost('/api/auth/email/verify', { email: pending.email, code });
   if (!result.ok) {
-    const response = NextResponse.redirect(new URL('/verify-code', request.url), 303);
+    const response = localRedirect('/verify-code');
     setFlash(response, request, result.data?.detail ?? 'That code did not work.');
     return response;
   }
-  const response = NextResponse.redirect(new URL(pending.next, request.url), 303);
+  const response = localRedirect(pending.next);
   response.cookies.delete(PENDING_COOKIE);
   setTokens(response, request, result.data);
   return response;

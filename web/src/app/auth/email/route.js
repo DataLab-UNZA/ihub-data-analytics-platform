@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { localRedirect } from '@/lib/redirect';
 import { apiPost } from '@/lib/api';
 import { safeNext, setFlash, setPending, forbiddenOrigin, sameOrigin } from '@/lib/session';
 
@@ -16,11 +16,11 @@ export async function POST(request) {
 
   const result = await apiPost('/api/auth/email/request', { email });
   if (!result.ok) {
-    const response = NextResponse.redirect(new URL('/login', request.url), 303);
+    const response = localRedirect('/login');
     setFlash(response, request, result.data?.detail ?? 'We could not send a code. Try again.');
     return response;
   }
-  const response = NextResponse.redirect(new URL('/verify-code', request.url), 303);
+  const response = localRedirect('/verify-code');
   setPending(response, request, { email, next });
   setFlash(response, request, 'We sent a 6-digit code. It expires in 10 minutes.', 'info');
   return response;

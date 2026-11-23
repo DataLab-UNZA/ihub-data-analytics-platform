@@ -3,7 +3,7 @@
 The API builds the authorisation URL, exchanges the code with the client secret, and
 verifies the ID token itself: signature (Google's JWKS), ``iss``, ``aud``, ``exp``,
 ``nonce``, ``email_verified``, and that both the ``hd`` claim and the email domain are the
-allowed UNZA domain. With the domain set to ``*`` (testing only) any verified Google
+allowed UNZA domain. With the domain set to ``*`` any verified Google
 account is accepted, Gmail included. The ``hd`` request parameter only tunes Google's
 account chooser; the ``hd`` claim check is what enforces the rule.
 """

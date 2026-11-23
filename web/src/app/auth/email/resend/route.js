@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { localRedirect } from '@/lib/redirect';
 import { apiPost } from '@/lib/api';
 import { PENDING_COOKIE, readPending, setFlash, forbiddenOrigin, sameOrigin } from '@/lib/session';
 
@@ -9,7 +9,7 @@ export async function POST(request) {
   }
   const pending = readPending(request.cookies.get(PENDING_COOKIE)?.value);
   const target = pending ? '/verify-code' : '/login';
-  const response = NextResponse.redirect(new URL(target, request.url), 303);
+  const response = localRedirect(target);
   if (!pending) {
     setFlash(response, request, 'Enter your email address to get a code.');
     return response;

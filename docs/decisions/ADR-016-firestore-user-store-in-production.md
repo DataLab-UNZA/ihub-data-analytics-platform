@@ -1,4 +1,4 @@
-# ADR-012: Keep users in Firestore and require sign-in in production
+# ADR-016: Keep users in Firestore and require sign-in in production
 
 - **Status:** Proposed
 - **Date:** November 17, 2026

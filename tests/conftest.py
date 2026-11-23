@@ -38,9 +38,14 @@ def build_mart_db(db: Path) -> Path:
     """Create a tiny research mart (five publications, 2019 to 2022) at ``db``."""
     with duckdb.connect(str(db)) as con:
         con.execute("CREATE SCHEMA marts")
-        con.execute("CREATE TABLE marts.dim_year (year_key INT, year INT)")
         con.execute(
-            "INSERT INTO marts.dim_year VALUES (2019,2019),(2020,2020),(2021,2021),(2022,2022)"
+            "CREATE TABLE marts.dim_year (year_key INT, year INT, decade_start INT, "
+            "decade_label VARCHAR)"
+        )
+        con.execute(
+            "INSERT INTO marts.dim_year VALUES "
+            "(2019,2019,2010,'2010s'),(2020,2020,2020,'2020s'),"
+            "(2021,2021,2020,'2020s'),(2022,2022,2020,'2020s')"
         )
         con.execute(
             "CREATE TABLE marts.dim_publication_type (type_key VARCHAR, type_label VARCHAR)"

@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     # Storage
     ihub_data_dir: Path = Path("data")
     ihub_duckdb_path: Path = Path("data/ihub.duckdb")
+    # Private HR roster used to credit schools (ADR-012). Git-ignored; absent in production.
+    ihub_staff_roster_path: Path = Path("data/private/staff_roster.csv")
 
     # OpenAlex
     openalex_mailto: str | None = None
@@ -40,6 +42,9 @@ class Settings(BaseSettings):
     # Where users are kept: "sqlite" (local) or "firestore" (production, ADR-009)
     ihub_auth_store: str = "sqlite"
     ihub_firestore_database: str = "(default)"
+    # Explicitly allow the non-durable SQLite store in a production container.
+    # It is for demonstrations only: Cloud Run can erase it at any restart.
+    ihub_allow_ephemeral_auth: bool = False
     # Saved charts and dashboards (ihub.workspace)
     ihub_workspace_db_path: Path = Path("data/workspace.sqlite")
     ihub_google_client_id: str | None = None

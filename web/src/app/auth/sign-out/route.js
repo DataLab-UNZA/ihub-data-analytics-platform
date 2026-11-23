@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { localRedirect } from '@/lib/redirect';
 import { apiPost } from '@/lib/api';
 import { REFRESH_COOKIE, clearSession, setFlash, forbiddenOrigin, sameOrigin } from '@/lib/session';
 
@@ -11,7 +11,7 @@ export async function POST(request) {
   if (refreshToken) {
     await apiPost('/api/auth/sign-out', { refresh_token: refreshToken });
   }
-  const response = NextResponse.redirect(new URL('/login', request.url), 303);
+  const response = localRedirect('/login');
   clearSession(response);
   setFlash(response, request, 'You are signed out.', 'info');
   return response;

@@ -17,7 +17,20 @@ from ihub.workspace.models import Chart, Dashboard, DashboardItem, NativeFilter
 from ihub.workspace.store import WorkspaceStore
 
 VIZ_TYPES = frozenset(
-    {"table", "big_number", "bar", "line", "area", "pie", "treemap", "heatmap", "world_map"}
+    {
+        "table",
+        "big_number",
+        "bar",
+        "line",
+        "area",
+        "pie",
+        "treemap",
+        "heatmap",
+        "world_map",
+        "combo",
+        "scatter",
+        "sunburst",
+    }
 )
 MAX_OPTIONS_BYTES = 20_000
 MAX_ITEMS = 40

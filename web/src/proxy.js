@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { proxyRedirect } from '@/lib/redirect';
 import {
   ACCESS_COOKIE,
   DEFAULT_NEXT,
@@ -22,7 +23,7 @@ import {
  * open and the sign-in screens send visitors to the overview.
  */
 const SIGN_IN_PAGES = ['/login', '/verify-code'];
-const PUBLIC_PREFIXES = ['/auth/', '/healthz', '/foundations'];
+const PUBLIC_PREFIXES = ['/auth/', '/healthz', '/health/ready', '/foundations'];
 const API_URL = (process.env.IHUB_API_URL ?? 'http://127.0.0.1:8000').replace(/\/$/, '');
 const REFRESH_MARGIN_SECONDS = 30;
 
@@ -55,20 +56,23 @@ function toLogin(request) {
   if (pathname !== '/' && pathname !== DEFAULT_NEXT) {
     url.searchParams.set('next', `${pathname}${search}`);
   }
-  return NextResponse.redirect(url);
+  return proxyRedirect(`${url.pathname}${url.search}`, request);
 }
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   if (pathname === '/' && !showScreenIndex()) {
-    return NextResponse.redirect(new URL(DEFAULT_NEXT, request.url));
+    return proxyRedirect(DEFAULT_NEXT, request);
   }
   if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next();
   }
   if (!signInRequired()) {
-    return isSignInPage(pathname) ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url)) : NextResponse.next();
+    // A code may have been requested just before the setting changed or on a revision
+    // that has not restarted yet. Let the code screen read its pending cookie; without
+    // one it redirects safely through /login to the public overview.
+    return pathname === '/login' ? proxyRedirect(DEFAULT_NEXT, request) : NextResponse.next();
   }
 
   const access = request.cookies.get(ACCESS_COOKIE)?.value;
@@ -76,13 +80,13 @@ export async function proxy(request) {
   const accessValid = Boolean(access) && secondsLeft(access) > REFRESH_MARGIN_SECONDS;
 
   if (accessValid) {
-    return isSignInPage(pathname) ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url)) : NextResponse.next();
+    return isSignInPage(pathname) ? proxyRedirect(DEFAULT_NEXT, request) : NextResponse.next();
   }
   if (refresh) {
     const tokens = await refreshTokens(refresh);
     if (tokens) {
       const response = isSignInPage(pathname)
-        ? NextResponse.redirect(new URL(DEFAULT_NEXT, request.url))
+        ? proxyRedirect(DEFAULT_NEXT, request)
         : NextResponse.next();
       setTokens(response, request, tokens);
       return response;

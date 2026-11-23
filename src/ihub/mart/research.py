@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import csv
 import io
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -117,6 +117,9 @@ class PublicationFilter:
     venues: Sequence[str] = field(default_factory=tuple)
     sources: Sequence[str] = field(default_factory=tuple)
     search: str = ""
+    #: Restrict to these publications (a unit's publications, see ``ihub.api.units``).
+    #: ``None`` means no restriction; an empty collection matches nothing.
+    publication_keys: Collection[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -301,6 +304,12 @@ def _publication_where(filters: PublicationFilter) -> tuple[str, list[Any]]:
             raise ValueError(f"Unknown source(s): {', '.join(unknown)}")
         flags = " OR ".join(f"f.{SOURCE_FLAGS[s]}" for s in filters.sources)
         clauses.append(f"({flags})")
+    if filters.publication_keys is not None:
+        if filters.publication_keys:
+            clauses.append("list_contains(?, f.publication_key)")
+            params.append(sorted(filters.publication_keys))
+        else:
+            clauses.append("FALSE")  # a unit with no publications matches nothing
     search = filters.search.strip()
     if search:
         clauses.append("(p.title ILIKE ? ESCAPE '\\' OR p.doi ILIKE ? ESCAPE '\\')")
@@ -321,6 +330,58 @@ def count_publications(db_path: Path, filters: PublicationFilter) -> int:
     """Return how many publications match ``filters``."""
     where, params = _publication_where(filters)
     return int(_fetch(db_path, f"SELECT count(*) {_PUBLICATIONS_FROM} {where}", params)[0][0])
+
+
+@dataclass(frozen=True)
+class PublicationBreakdown:
+    """How the publications matching a filter split by type and by source."""
+
+    types: tuple[tuple[str, int], ...]  # (type label, publications), largest first
+    sources: tuple[tuple[str, str, int], ...]  # (source code, source name, publications)
+
+
+def publication_breakdown(db_path: Path, filters: PublicationFilter) -> PublicationBreakdown:
+    """Split the publications matching ``filters`` by type and by source.
+
+    Uses the same WHERE clause as the list and the count, so the figures always add up to
+    the same publications. A publication can be in several sources, so source counts add up
+    to more than the total. Every source in ``dim_source_system`` is listed, with 0 if none.
+    """
+    where, params = _publication_where(filters)
+    types = _fetch(
+        db_path,
+        f"""
+        SELECT t.type_label, count(*) AS n {_PUBLICATIONS_FROM} {where}
+        GROUP BY t.type_label ORDER BY n DESC, t.type_label
+        """,  # noqa: S608
+        params,
+    )
+    sources = _fetch(
+        db_path,
+        f"""
+        SELECT s.source_system, s.source_name, count(m.publication_key) AS n
+        FROM marts.dim_source_system AS s
+        LEFT JOIN (
+            SELECT DISTINCT f.publication_key, b.source_system_key
+            {_PUBLICATIONS_FROM}
+            JOIN marts.bridge_publication_source AS b ON b.publication_key = f.publication_key
+            {where}
+        ) AS m USING (source_system_key)
+        GROUP BY s.source_system, s.source_name ORDER BY s.source_name
+        """,  # noqa: S608
+        params,
+    )
+    return PublicationBreakdown(
+        types=tuple((str(label), int(n)) for label, n in types),
+        sources=tuple((str(code), str(name), int(n)) for code, name, n in sources),
+    )
+
+
+def matching_keys(db_path: Path, filters: PublicationFilter) -> frozenset[str]:
+    """Return the key of every publication matching ``filters`` (the same WHERE as the list)."""
+    where, params = _publication_where(filters)
+    rows = _fetch(db_path, f"SELECT f.publication_key {_PUBLICATIONS_FROM} {where}", params)  # noqa: S608
+    return frozenset(str(key) for (key,) in rows)
 
 
 def publications(

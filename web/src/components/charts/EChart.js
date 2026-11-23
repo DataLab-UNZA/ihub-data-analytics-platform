@@ -26,10 +26,15 @@ function needsWorldMap(option) {
  *
  * @param {object} option An ECharts option (see src/lib/viz.js).
  * @param {number|string} height Height of the chart area.
+ * @param {(params: object) => void} onClick Called with the ECharts event when a mark is clicked.
  */
-export default function EChart({ option, height = 360, ariaLabel }) {
+export default function EChart({ option, height = 360, ariaLabel, onClick }) {
   const element = useRef(null);
   const chart = useRef(null);
+  const clickHandler = useRef(onClick);
+  useEffect(() => {
+    clickHandler.current = onClick;
+  }, [onClick]);
 
   useEffect(() => {
     if (!themeRegistered) {
@@ -38,6 +43,7 @@ export default function EChart({ option, height = 360, ariaLabel }) {
     }
     const instance = echarts.init(element.current, 'ihub', { renderer: 'canvas' });
     chart.current = instance;
+    instance.on('click', (params) => clickHandler.current?.(params));
     const observer = new ResizeObserver(() => instance.resize());
     observer.observe(element.current);
     return () => {

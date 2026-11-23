@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { localRedirect } from '@/lib/redirect';
 import { apiPost } from '@/lib/api';
 import { safeNext, setFlash, setFlow } from '@/lib/session';
 
@@ -10,7 +11,7 @@ export async function GET(request) {
   const next = safeNext(new URL(request.url).searchParams.get('next'));
   const result = await apiPost('/api/auth/google/start', { next });
   if (!result.ok) {
-    const response = NextResponse.redirect(new URL('/login', request.url), 303);
+    const response = localRedirect('/login');
     setFlash(response, request, result.data?.detail ?? 'Sign-in with Google is not available.');
     return response;
   }

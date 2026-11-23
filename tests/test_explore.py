@@ -153,7 +153,9 @@ def clients(insights_db: Path, tmp_path: Path) -> tuple[TestClient, TestClient, 
 def test_explore_api(clients: tuple[TestClient, TestClient, TestClient]) -> None:
     admin, member, anonymous = clients
     datasets = member.get("/api/explore/datasets").json()
-    assert [d["name"] for d in datasets] == ["publications", "affiliations", "topics"]
+    assert [d["name"] for d in datasets][:3] == ["publications", "affiliations", "topics"]
+    names = {d["name"] for d in datasets}
+    assert {"unit_publications", "unit_authorships", "researcher_output"} <= names
     assert all("expr" not in c for d in datasets for c in d["columns"])  # SQL never leaves the API
     body = {
         "dataset": "publications",

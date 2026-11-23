@@ -25,6 +25,13 @@ def test_production_refuses_a_temporary_user_store(tmp_path: Path) -> None:
         build_auth_service(settings(tmp_path, ihub_auth_secret=SECRET))
 
 
+def test_production_can_explicitly_use_an_ephemeral_store(tmp_path: Path) -> None:
+    service = build_auth_service(
+        settings(tmp_path, ihub_auth_secret=SECRET, ihub_allow_ephemeral_auth=True)
+    )
+    assert service.methods == {"google": False, "email_code": False}
+
+
 def test_short_secrets_are_refused(tmp_path: Path) -> None:
     with pytest.raises(AuthNotConfiguredError, match="at least 32"):
         build_auth_service(settings(tmp_path, ihub_env="development", ihub_auth_secret="short"))

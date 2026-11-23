@@ -61,7 +61,7 @@ export default function OverviewDashboard({ data, showStale = false }) {
           <CardHeader
             id="units-title"
             title="Outputs by unit"
-            subtitle={`${data.schoolCount} units with output · a publication counts once in each school`}
+            subtitle={`${data.schoolCount} units · ${data.schoolsFromRoster ? 'credited through the staff roster' : 'from department evidence'} · a publication counts once in each school`}
           />
           <BarList items={data.schools} max={data.schoolMax} />
         </Card>

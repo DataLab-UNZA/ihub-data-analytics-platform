@@ -45,7 +45,7 @@ export const SCREENS = [
   },
   { n: 21, group: 'Organisation and people', title: 'Compare units', path: '/compare-units', nav: 'compare' },
   { n: 22, group: 'Organisation and people', title: 'Members', path: '/members', nav: 'members' },
-  { n: 23, group: 'Organisation and people', title: 'Member profile', path: '/members/chanda-banda', nav: 'members' },
+  { n: 23, group: 'Organisation and people', title: 'Member profile', path: '/members', nav: 'members' },
 
   // Publications and research
   { n: 24, group: 'Publications and research', title: 'Publications', path: '/publications', nav: 'publications' },

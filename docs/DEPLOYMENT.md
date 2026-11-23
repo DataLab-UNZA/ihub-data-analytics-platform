@@ -46,18 +46,28 @@ Set them in GitHub → **Settings → Environments → pipeline** (or **producti
 
 The sign-in secrets go in **both** environments because the Deploy job runs in `production` for a merge or a manual deploy, and in `pipeline` for the weekly redeploy; a secret missing from one would be dropped from the live app on that kind of deploy. Deploy writes each sign-in value that is set into the `api` container of `deploy/service.yaml` (unset values are left out) and never prints them. `IHUB_PUBLIC_URL` defaults to the service's own address. Note that values passed this way are visible to anyone who can view the Cloud Run service in Google Cloud; Secret Manager (ADR-008) is the stronger option for later.
 
+### Google OAuth callback
+
+For Google sign-in, the OAuth client must contain the exact HTTPS callback that the API sends to Google. In Google Cloud Console → **APIs & Services** → **Credentials** → the iHub web client, add:
+
+- **Authorized JavaScript origin:** `https://ihub-app-zvmmzc2oja-bq.a.run.app`
+- **Authorized redirect URI:** `https://ihub-app-zvmmzc2oja-bq.a.run.app/auth/google/callback`
+
+Set the same base address as the GitHub repository variable `IHUB_PUBLIC_URL`. `localhost` is only for local development and cannot receive the production OAuth callback. If Cloud Run reports a different generated service URL after a future recreation, update both places together.
+
 The Google Cloud resources were created once with [`scripts/gcp_setup.sh`](../scripts/gcp_setup.sh), run in Cloud Shell. It is safe to re-run and prints the values of the variables above.
 
 ## Sign-in (ADR-010)
 
-Production runs with `IHUB_REQUIRE_SIGN_IN=false` on both containers (`deploy/service.yaml`) until the persistent user
-store (Firestore, ADR-009) exists: Cloud Run's disk is temporary, so accounts would vanish. To switch sign-in on later:
+Production requires sign-in. The current deployment uses an **instance-local SQLite account store** in `/tmp/ihub-auth.sqlite`, so it needs no Firestore account or Cloud project change. This is suitable for demonstrations only: every account, profile photo, email code and session disappears whenever Cloud Run stops, restarts, scales to zero or deploys a new revision. The app is limited to one instance, so users do not receive different account stores simultaneously.
+
+For durable real accounts, replace the temporary store with Firestore before relying on it operationally:
 
 1. Create the Firestore store (ADR-009) and give `GCP_RUNTIME_SA` the `roles/datastore.user` role.
 2. Add the sign-in secrets and variables in GitHub (table above). The next deploy passes them to the `api`
    container. (Secret Manager, mounted on the `api` container, is the stronger alternative from ADR-008.)
 3. In the Google Cloud console, list `<service URL>/auth/google/callback` as an authorised redirect URI of the OAuth client.
-4. Remove `IHUB_REQUIRE_SIGN_IN` from both containers.
+4. Remove `IHUB_ALLOW_EPHEMERAL_AUTH` and use the Firestore-backed store.
 
 Never put the secret values in GitHub variables, the repository or workflow logs: only in environment secrets.
 
@@ -116,4 +126,6 @@ One Cloud Run service, `ihub-app`, with two containers in each instance ([ADR-00
 | `web` | `ihub/web` (`web/Dockerfile`) | 8080, receives all traffic | Next.js front end; calls the API at `http://127.0.0.1:8000` from the server only |
 | `api` | `ihub/api` (`Dockerfile.api`) | 8000, localhost only | FastAPI research API over the DuckDB file built into the image |
 
-`web` starts once `api` passes its startup probe (`/api/health`). The API is never reachable from the internet. In production the design-only screens (mock sign-in, screen index) redirect to `/overview` until staff sign-in exists ([ADR-008](decisions/ADR-008-staff-sign-in-with-google.md)); `IHUB_SHOW_PREVIEWS=true` shows them locally.
+The service explicitly uses Cloud Run ingress `all` and unauthenticated invocation, so its generated `run.app` URL is reachable by users and by the deployment health check.
+
+`web` starts once `api` passes its startup probe (`/api/health`). The API is never reachable from the internet. The design-only screen index redirects to `/overview` in production; `IHUB_SHOW_PREVIEWS=true` shows it locally.

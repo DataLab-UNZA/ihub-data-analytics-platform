@@ -24,7 +24,7 @@ const JOURNAL_COLUMNS = [
 ];
 
 const MEMBER_COLUMNS = [
-  { key: 'member', header: 'Member', rowHeader: true, href: () => '/members/chanda-banda' },
+  { key: 'member', header: 'Member', rowHeader: true, href: () => '/members' },
   { key: 'unit', header: 'Unit' },
   { key: 'orcid', header: 'ORCID' },
 ];
