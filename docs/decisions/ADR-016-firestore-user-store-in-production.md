@@ -1,6 +1,6 @@
 # ADR-016: Keep users in Firestore and require sign-in in production
 
-- **Status:** Proposed
+- **Status:** Superseded by [ADR-018](ADR-018-local-account-store.md)
 - **Date:** November 17, 2026
 - **Decided by:** Bruce Mainza; for review by the team and Lighton Phiri
 
