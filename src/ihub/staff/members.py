@@ -13,7 +13,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-from ihub.staff.attribution import ROSTER_BASES, linked_authors
+from ihub.staff.attribution import MEMBER_BASES, linked_authors
 from ihub.staff.sources import RosterSource
 
 
@@ -24,8 +24,9 @@ class MemberRecord:
     member_id: str  # opaque, stable for a staff key; the staff key itself is never exposed
     title: str
     name: str
-    school: str | None
+    school: str | None  # a fellow's school comes from department evidence, when there is one
     author_keys: tuple[str, ...]
+    fellow: bool = False  # a staff development fellow: the roster gives them no school
 
 
 def member_id(staff_key: str) -> str:
@@ -41,19 +42,27 @@ def directory(db_path: Path, roster_path: RosterSource | Path | None) -> list[Me
     roster, result = linked
     by_staff: dict[str, list[str]] = defaultdict(list)
     for author_key, link in result.links.items():
-        if link.basis in ROSTER_BASES and link.staff_key:
+        if link.basis in MEMBER_BASES and link.staff_key:
             by_staff[link.staff_key].append(author_key)
     people = {member.staff_key: member for member in roster.members}
-    records = [
-        MemberRecord(
-            member_id=member_id(staff_key),
-            title=people[staff_key].title,
-            name=people[staff_key].display_name,
-            school=people[staff_key].school,
-            author_keys=tuple(sorted(keys)),
+    records = []
+    for staff_key, keys in by_staff.items():
+        person = people.get(staff_key)
+        if person is None:
+            continue
+        school = person.school
+        if school is None:  # a fellow: use the department evidence only if it names one school
+            found = {s for key in keys for s in result.links[key].schools}
+            school = next(iter(found)) if len(found) == 1 else None
+        records.append(
+            MemberRecord(
+                member_id=member_id(staff_key),
+                title=person.title,
+                name=person.display_name,
+                school=school,
+                author_keys=tuple(sorted(keys)),
+                fellow=person.school is None,
+            )
         )
-        for staff_key, keys in by_staff.items()
-        if staff_key in people
-    ]
     records.sort(key=lambda record: (record.name.casefold(), record.member_id))
     return records

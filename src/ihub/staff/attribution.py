@@ -9,6 +9,8 @@ An author is linked to a school in one of four ways, recorded as the link's ``ba
   :mod:`ihub.staff.overrides`), for names the matching cannot connect;
 * ``department_for_fellow``: the name fits a staff development fellow (no school in the roster),
   so the school comes from the author's department evidence;
+* ``fellow_no_school``: the same, but no department evidence exists, so there is no school to
+  credit. The fellow is still listed in the Members directory;
 * ``department_only``: the name is not on the roster but the pipeline found the author's
   department. This is the older, supplementary evidence, reported separately.
 
@@ -19,7 +21,7 @@ returned; no name, staff key or per-person result leaves this module.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Container, Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -35,10 +37,16 @@ ROSTER = "roster"
 TIEBREAK = "roster_tiebreak"
 OVERRIDE = "roster_override"
 FELLOW = "department_for_fellow"
+FELLOW_NO_SCHOOL = "fellow_no_school"
 DEPARTMENT_ONLY = "department_only"
 
 #: Link bases that come from the roster (the rest is supplementary department evidence).
 ROSTER_BASES = frozenset({ROSTER, TIEBREAK, FELLOW, OVERRIDE})
+
+#: Bases that tie an author to a named staff member, for the Members directory. A fellow with
+#: no department evidence has no school to credit, so it is not a roster basis for school
+#: credit, but the person is still a member.
+MEMBER_BASES = ROSTER_BASES | {FELLOW_NO_SCHOOL}
 
 
 @dataclass(frozen=True)
@@ -82,7 +90,7 @@ class LinkResult:
     matched_staff_by_school: dict[str, int] = field(default_factory=dict)
 
 
-def _only_person(candidates: Iterable, schools: set[str]) -> str | None:
+def _only_person(candidates: Iterable, schools: Container[str | None]) -> str | None:
     """Return the staff key when exactly one roster entry fits in ``schools``, else None."""
     ids = {c.member.staff_key for c in candidates if c.member.school in schools}
     return next(iter(ids)) if len(ids) == 1 else None
@@ -156,9 +164,12 @@ def link_authors(
             )
             tiebroken += 1
         elif known:  # only staff development fellows fit: take the school from the department
-            links[key] = AuthorLink(known, FELLOW, rule)
+            links[key] = AuthorLink(known, FELLOW, rule, _only_person(candidates, {None}))
         else:
             fellows_blank += 1
+            links[key] = AuthorLink(
+                frozenset(), FELLOW_NO_SCHOOL, rule, _only_person(candidates, {None})
+            )
             continue
         by_rule[rule] += 1
         for candidate in candidates:

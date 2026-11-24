@@ -297,3 +297,48 @@ def test_the_near_miss_script_suggests_a_repeated_given_name(tmp_path: Path) -> 
         ("k4", "Bob Smith", frozenset({"bob", "smith"}), ["bob", "smith"]),
     ]
     assert [key for key, _ in script.candidates(member, authors)] == ["k1", "k3"]
+
+
+# --- staff development fellows (no school on the roster) -----------------------------------------
+
+
+def test_a_fellow_is_listed_even_with_no_school(insights_db: Path, tmp_path: Path) -> None:
+    roster = roster_with(tmp_path, "1001,MWANSA,ALICE,,Dr,LECTURER,SDF\n")
+    client = client_for(insights_db, roster)
+    row = client.get("/api/members").json()["rows"][0]
+    assert (row["name"], row["fellow"], row["school"]) == ("Alice Mwansa", True, None)
+    assert row["publications"] == 4 and "1001" not in str(row)
+    # ... but with no school there is nothing to credit and no unit to filter by.
+    credit = client.get("/api/organisation").json()["school_credit"]
+    assert all(s["roster_publications"] == 0 for s in credit["schools"])
+    assert client.get("/api/members", params={"unit": "School of Medicine"}).json()["rows"] == []
+
+
+def test_a_fellow_with_department_evidence_takes_that_school(tmp_path: Path) -> None:
+    from ihub.staff import attribution as at
+
+    roster = load_roster(roster_with(tmp_path, "1001,MWANSA,ALICE,,Dr,LECTURER,SDF\n"))
+    assert roster is not None
+    evidence = {"a1": frozenset({"School of Medicine"}), "a2": frozenset()}
+    alice = staff_key({"Surname": "MWANSA", "First Name": "ALICE", "School": "SDF"})
+    result = at.link_authors([("a1", "Alice Mwansa"), ("a2", "Mwansa Alice")], roster, evidence)
+    with_school, without = result.links["a1"], result.links["a2"]
+    assert (with_school.basis, with_school.schools, with_school.staff_key) == (
+        at.FELLOW,
+        frozenset({"School of Medicine"}),
+        alice,
+    )
+    assert (without.basis, without.schools, without.staff_key) == (
+        at.FELLOW_NO_SCHOOL,
+        frozenset(),
+        alice,
+    )
+    assert result.stats.fellows_without_evidence == 1  # still counted as before
+    assert result.stats.roster_linked == 1  # a fellow with no school adds no school credit
+
+
+def test_two_fellows_with_the_same_name_are_not_merged(insights_db: Path, tmp_path: Path) -> None:
+    roster = roster_with(
+        tmp_path, "1001,MWANSA,ALICE,,Dr,LECTURER,SDF\n", "1002,MWANSA,ALICE,,Ms,LECTURER,SDF\n"
+    )
+    assert client_for(insights_db, roster).get("/api/members").json()["rows"] == []

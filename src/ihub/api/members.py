@@ -45,6 +45,7 @@ class Summary:
             "title": self.record.title,
             "name": self.record.name,
             "school": self.record.school,
+            "fellow": self.record.fellow,
             "orcid": self.orcid,
             "orcid_url": f"https://orcid.org/{self.orcid}" if self.orcid else None,
             "publications": len(self.publication_keys),

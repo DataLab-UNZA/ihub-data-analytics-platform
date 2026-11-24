@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from ihub.api.app import create_app
 from ihub.mart.research import YearRange
 from ihub.staff import attribution as at
-from ihub.staff.roster import load_roster
+from ihub.staff.roster import load_roster, staff_key
 
 HEADER = "Staff ID,Surname,First Name,Second Name,Title,Occupation,School\n"
 MEDICINE = "School of Medicine"
@@ -57,7 +57,13 @@ def test_a_fellow_takes_the_school_of_their_department_or_none(tmp_path: Path) -
     rows = ["1,MUBITA,KAIKO,,Mr,LECTURER,SDF"]
     authors = [("a1", "Kaiko Mubita")]
     assert link(tmp_path, rows, authors).stats.fellows_without_evidence == 1
-    assert "a1" not in link(tmp_path, rows, authors).links
+    alone = link(tmp_path, rows, authors).links["a1"]  # listed as a member, but nothing to credit
+    kaiko = staff_key({"Surname": "MUBITA", "First Name": "KAIKO", "School": "SDF"})
+    assert (alone.basis, alone.schools, alone.staff_key) == (
+        at.FELLOW_NO_SCHOOL,
+        frozenset(),
+        kaiko,
+    )
     result = link(tmp_path, rows, authors, {"a1": frozenset({EDUCATION})})
     assert result.links["a1"] == at.AuthorLink(frozenset({EDUCATION}), at.FELLOW, "exact")
 

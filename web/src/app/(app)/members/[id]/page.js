@@ -26,6 +26,11 @@ const COLUMNS = [
 
 const first = (value) => (Array.isArray(value) ? value[0] : value);
 
+function unitLabel(member) {
+  if (!member.fellow) return member.school ?? 'No school on the roster';
+  return member.school ? `${member.school} (staff development fellow)` : 'Staff development fellow, no school on the roster';
+}
+
 export default async function MemberProfilePage({ params, searchParams }) {
   const { id } = await params;
   const page = Math.max(1, Number.parseInt(first((await searchParams).page) ?? '1', 10) || 1);
@@ -48,7 +53,7 @@ export default async function MemberProfilePage({ params, searchParams }) {
             <CardHeader
               id="member-title"
               title={fullName}
-              subtitle={`Member profile · ${member.school ?? 'No school on the roster'}`}
+              subtitle={`Member profile · ${unitLabel(member)}`}
               className="mb-24"
             />
             <div className="meta-grid">
