@@ -21,6 +21,7 @@ from ihub.auth.rbac import Permission
 from ihub.auth.service import AuthService
 from ihub.mart.research import MartUnavailableError
 from ihub.settings import get_settings
+from ihub.staff.sources import RosterProvider, choose_roster
 from ihub.workspace.api import WorkspaceProvider, build_workspace_router
 from ihub.workspace.service import WorkspaceService
 from ihub.workspace.sqlite_store import SqliteWorkspaceStore
@@ -68,7 +69,7 @@ def create_app(
     *,
     require_sign_in: bool | None = None,
     workspace_service: WorkspaceProvider | None = None,
-    staff_roster_path: Callable[[], Path | None] | None = None,
+    staff_roster: RosterProvider | None = None,
 ) -> FastAPI:
     """Build the app.
 
@@ -76,8 +77,9 @@ def create_app(
     ``auth_service`` returns the authentication service (built from settings by default);
     ``require_sign_in`` protects the research routes with RBAC (``IHUB_REQUIRE_SIGN_IN``
     by default, which is on unless set to false);
-    ``staff_roster_path`` returns the private roster used to credit schools (ADR-012; the
-    ``IHUB_STAFF_ROSTER_PATH`` setting by default, and the file need not exist).
+    ``staff_roster`` returns the roster used for Members and the school credit: by default
+    the local CSV at ``IHUB_STAFF_ROSTER_PATH`` when it exists, else the public staff list in
+    the database (``marts.dim_staff``, ADR-017), else None.
     """
     if require_sign_in is None:
         require_sign_in = get_settings().ihub_require_sign_in
@@ -108,13 +110,16 @@ def create_app(
         return JSONResponse(status_code=400, content={"detail": str(exc)})
 
     guarded = require_sign_in
-    roster_path = staff_roster_path or (lambda: get_settings().ihub_staff_roster_path)
+    database = database_path or (lambda: get_settings().ihub_duckdb_path)
+    roster_path = staff_roster or (
+        lambda: choose_roster(get_settings().ihub_staff_roster_path, database())
+    )
     app.include_router(
         build_router(
             database_path or (lambda: get_settings().ihub_duckdb_path),
             read=[Depends(require(Permission.RESEARCH_READ))] if guarded else [],
             export=[Depends(require(Permission.RESEARCH_EXPORT))] if guarded else [],
-            staff_roster_path=roster_path,
+            staff_roster=roster_path,
         )
     )
     app.include_router(
@@ -124,7 +129,6 @@ def create_app(
             read=[Depends(require(Permission.MEMBERS_READ))] if guarded else [],
         )
     )
-    database = database_path or (lambda: get_settings().ihub_duckdb_path)
     app.include_router(
         build_explore_router(
             database,

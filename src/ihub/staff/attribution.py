@@ -13,7 +13,7 @@ An author is linked to a school in one of four ways, recorded as the link's ``ba
   department. This is the older, supplementary evidence, reported separately.
 
 A publication counts once in every school with a linked author. Only school-level numbers are
-returned; no name, staff ID or per-person result leaves this module.
+returned; no name, staff key or per-person result leaves this module.
 """
 
 from __future__ import annotations
@@ -27,8 +27,9 @@ from ihub.mart import staff_links
 from ihub.mart.research import YearRange
 from ihub.staff.matching import INITIAL, RosterIndex, match_name
 from ihub.staff.names import parse_person
-from ihub.staff.overrides import load_overrides, overrides_path, pin_authors
-from ihub.staff.roster import Roster, load_roster
+from ihub.staff.overrides import load_overrides, pin_authors
+from ihub.staff.roster import Roster
+from ihub.staff.sources import RosterSource, as_source
 
 ROSTER = "roster"
 TIEBREAK = "roster_tiebreak"
@@ -50,7 +51,7 @@ class AuthorLink:
     #: The one roster entry the name fits in the credited school(s), or None when several fit
     #: (or the link is not from the roster). Used by the Members directory only; it is not part
     #: of what two links are compared by.
-    staff_id: str | None = field(default=None, compare=False)
+    staff_key: str | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True)
@@ -82,8 +83,8 @@ class LinkResult:
 
 
 def _only_person(candidates: Iterable, schools: set[str]) -> str | None:
-    """Return the staff ID when exactly one roster entry fits in ``schools``, else None."""
-    ids = {c.member.staff_id for c in candidates if c.member.school in schools}
+    """Return the staff key when exactly one roster entry fits in ``schools``, else None."""
+    ids = {c.member.staff_key for c in candidates if c.member.school in schools}
     return next(iter(ids)) if len(ids) == 1 else None
 
 
@@ -96,10 +97,10 @@ def link_authors(
     """Link ``(author_key, author_name)`` pairs to schools through ``roster``.
 
     ``evidence`` maps an author to the schools of the departments found for that author.
-    ``pinned`` maps an author to the staff ID a person confirmed by hand; it wins over the name.
+    ``pinned`` maps an author to the staff key a person confirmed by hand; it wins over the name.
     """
     index = RosterIndex(roster.members)
-    people = {member.staff_id: member for member in roster.members}
+    people = {member.staff_key: member for member in roster.members}
     pinned = pinned or {}
     links: dict[str, AuthorLink] = {}
     by_rule: Counter[str] = Counter()
@@ -113,10 +114,10 @@ def link_authors(
         pin = people.get(pinned.get(key, ""))
         if pin is not None:
             schools = frozenset({pin.school}) if pin.school else known
-            links[key] = AuthorLink(schools, OVERRIDE, "override", pin.staff_id)
+            links[key] = AuthorLink(schools, OVERRIDE, "override", pin.staff_key)
             by_rule["override"] += 1
             if pin.school:
-                matched_staff[pin.school].add(pin.staff_id)
+                matched_staff[pin.school].add(pin.staff_key)
             continue
         outcome = match_name(parse_person(name), index)
         candidates = list(outcome.candidates)
@@ -162,7 +163,7 @@ def link_authors(
         by_rule[rule] += 1
         for candidate in candidates:
             if candidate.member.school in links[key].schools:
-                matched_staff[candidate.member.school].add(candidate.member.staff_id)
+                matched_staff[candidate.member.school].add(candidate.member.staff_key)
 
     staff_by_school = Counter(m.school for m in roster.members if m.school is not None)
     matched_ids = {sid for ids in matched_staff.values() for sid in ids}
@@ -261,39 +262,44 @@ def aggregate(
     )
 
 
-_cache: dict[tuple[str, int, str, int, int], tuple[Roster, LinkResult]] = {}
+_cache: dict[tuple[object, ...], tuple[Roster, LinkResult]] = {}
 
 
 def _mtime(path: Path) -> int:
     return Path(path).stat().st_mtime_ns
 
 
-def linked_authors(db_path: Path, roster_path: Path) -> tuple[Roster, LinkResult] | None:
-    """Return the roster and the author links, or None when there is no roster file.
+def linked_authors(
+    db_path: Path, roster: RosterSource | Path | None
+) -> tuple[Roster, LinkResult] | None:
+    """Return the roster and the author links, or None when there is no roster.
 
-    The result is kept until the database or the roster file changes.
+    ``roster`` is a :class:`RosterSource`, or the path of a roster CSV. The result is kept
+    until the database or the roster changes.
     """
-    if not Path(roster_path).is_file() or not Path(db_path).is_file():
+    source = as_source(roster)
+    if source is None or not Path(db_path).is_file():
         return None
-    overrides_file = overrides_path(roster_path)
-    changed = _mtime(overrides_file) if overrides_file.is_file() else 0
-    key = (str(db_path), _mtime(db_path), str(roster_path), _mtime(roster_path), changed)
+    key = (str(db_path), _mtime(db_path), source.version())
     if key not in _cache:
-        roster = load_roster(roster_path)
-        if roster is None:
+        loaded = source.load()
+        if loaded is None:
             return None
         authors = staff_links.unza_authors(db_path)
         evidence = staff_links.author_department_schools(db_path)
         _cache.clear()  # keep one entry: a rebuilt database or roster replaces the old one
-        pinned = pin_authors(
-            load_overrides(overrides_file), staff_links.author_identifiers(db_path)
-        )
-        _cache[key] = (roster, link_authors(authors, roster, evidence, pinned))
+        overrides_file = source.overrides_file()
+        overrides = load_overrides(overrides_file) if overrides_file else {}
+        pinned = pin_authors(overrides, staff_links.author_identifiers(db_path))
+        _cache[key] = (loaded, link_authors(authors, loaded, evidence, pinned))
     return _cache[key]
 
 
 def school_credit(
-    db_path: Path, roster_path: Path, years: YearRange, total_publications: int
+    db_path: Path,
+    roster_path: RosterSource | Path | None,
+    years: YearRange,
+    total_publications: int,
 ) -> SchoolCreditReport | None:
     """Credit schools with the publications of their roster-linked authors in ``years``.
 
@@ -308,13 +314,13 @@ def school_credit(
 
 
 def school_publications(
-    db_path: Path, roster_path: Path, years: YearRange
+    db_path: Path, roster_path: RosterSource | Path | None, years: YearRange
 ) -> dict[str, frozenset[str]] | None:
     """Return, per roster school, the publication keys behind its ``roster_publications`` count.
 
     Every school on the roster is listed, with an empty set when it has no publication in
     ``years``. Returns None when there is no roster. Publication keys are not personal data;
-    no name or staff ID is returned.
+    no name or staff key is returned.
     """
     linked = linked_authors(db_path, roster_path)
     if linked is None:

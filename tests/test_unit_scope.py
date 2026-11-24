@@ -32,7 +32,7 @@ def roster(tmp_path: Path) -> Path:
 @pytest.fixture
 def with_roster(insights_db: Path, roster: Path) -> TestClient:
     return TestClient(
-        create_app(lambda: insights_db, require_sign_in=False, staff_roster_path=lambda: roster)
+        create_app(lambda: insights_db, require_sign_in=False, staff_roster=lambda: roster)
     )
 
 
@@ -40,7 +40,7 @@ def with_roster(insights_db: Path, roster: Path) -> TestClient:
 def without_roster(insights_db: Path, tmp_path: Path) -> TestClient:
     missing = tmp_path / "missing.csv"
     return TestClient(
-        create_app(lambda: insights_db, require_sign_in=False, staff_roster_path=lambda: missing)
+        create_app(lambda: insights_db, require_sign_in=False, staff_roster=lambda: missing)
     )
 
 

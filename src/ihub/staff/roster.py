@@ -1,14 +1,18 @@
-"""Reading the staff roster (private HR data, ADR-012).
+"""Reading the staff roster (ADR-012, ADR-017).
 
-The file has the columns ``Staff ID, Surname, First Name, Second Name, Title, Occupation, School``.
-Only the name words, the staff ID and the school are kept in memory; titles and occupations are
-not used. Nothing here writes the roster anywhere.
+A roster row has the columns ``Surname, First Name, Second Name, Title, Occupation, School``
+(a local file may also have ``Staff ID``, which is ignored). Rows come from a local CSV or from
+``marts.dim_staff`` (see :mod:`ihub.staff.sources`); both are read by :func:`roster_from_rows`,
+so a person gets the same :attr:`StaffMember.staff_key` whichever source they come from.
+Nothing here writes the roster anywhere.
 """
 
 from __future__ import annotations
 
 import csv
+import hashlib
 from collections import Counter
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -56,7 +60,8 @@ def school_for_label(label: str | None) -> str | None:
 class StaffMember:
     """One person on the roster, reduced to what matching needs."""
 
-    staff_id: str
+    #: Stable, opaque identity built from the name and school label (never a staff ID).
+    staff_key: str
     school: str | None
     surname: frozenset[str]
     words: frozenset[str]  # every whole word of the name, surname included
@@ -82,14 +87,21 @@ class Roster:
         return len(self.members)
 
 
-def display_name(row: dict[str, str]) -> str:
+def display_name(row: Mapping[str, str | None]) -> str:
     """Return the person's name for display: given names, then the surname, in title case."""
     parts = [row.get("First Name"), row.get("Second Name"), row.get("Surname")]
     words = [word for part in parts if part for word in part.split() if not word.isdigit()]
     return " ".join(word.title() for word in words)
 
 
-def _member(row: dict[str, str]) -> StaffMember | None:
+def staff_key(row: Mapping[str, str | None]) -> str:
+    """Return the person's key: a hash of their name parts and school label, case-insensitive."""
+    parts = [row.get(column) for column in ("Surname", "First Name", "Second Name", "School")]
+    text = "|".join(" ".join((part or "").split()).casefold() for part in parts)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:20]
+
+
+def _member(row: Mapping[str, str | None], key: str) -> StaffMember | None:
     surname = name_words(row.get("Surname"))
     given = name_words(row.get("First Name")) + name_words(row.get("Second Name"))
     words = frozenset(word for word in surname + given if len(word) > 1)
@@ -99,7 +111,7 @@ def _member(row: dict[str, str]) -> StaffMember | None:
         {word for word in surname + given if len(word) == 1} | {word[0] for word in given}
     )
     return StaffMember(
-        staff_id=str(row.get("Staff ID", "")).strip(),
+        staff_key=key,
         school=school_for_label(row.get("School")),
         surname=frozenset(word for word in surname if len(word) > 1),
         words=words,
@@ -109,19 +121,31 @@ def _member(row: dict[str, str]) -> StaffMember | None:
     )
 
 
+def roster_from_rows(rows: Iterable[Mapping[str, str | None]]) -> Roster:
+    """Build the roster from rows with the roster's column names.
+
+    Two rows with the same name and school get different keys (``<key>-2``, ...), so they stay
+    two people and the matching never merges them (ADR-014).
+    """
+    members: list[StaffMember] = []
+    skipped = 0
+    labels: Counter[str] = Counter()
+    seen: Counter[str] = Counter()
+    for row in rows:
+        key = staff_key(row)
+        seen[key] += 1
+        member = _member(row, key if seen[key] == 1 else f"{key}-{seen[key]}")
+        if member is None:
+            skipped += 1
+            continue
+        members.append(member)
+        labels[(row.get("School") or "").strip()] += 1
+    return Roster(tuple(members), skipped_rows=skipped, by_label=dict(labels))
+
+
 def load_roster(path: Path) -> Roster | None:
     """Read the roster CSV, or return None when there is no file (the screen then falls back)."""
     if not Path(path).is_file():
         return None
-    members: list[StaffMember] = []
-    skipped = 0
-    labels: Counter[str] = Counter()
     with open(path, encoding="utf-8-sig", newline="") as handle:
-        for row in csv.DictReader(handle):
-            member = _member(row)
-            if member is None:
-                skipped += 1
-                continue
-            members.append(member)
-            labels[(row.get("School") or "").strip()] += 1
-    return Roster(tuple(members), skipped_rows=skipped, by_label=dict(labels))
+        return roster_from_rows(csv.DictReader(handle))

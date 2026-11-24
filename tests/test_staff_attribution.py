@@ -157,7 +157,7 @@ def test_a_changed_roster_file_is_read_again(insights_db: Path, tmp_path: Path) 
 def client(insights_db: Path, tmp_path: Path) -> TestClient:
     roster = roster_from(tmp_path, ["1001,MWANSA,ALICE,,Dr,LECTURER,Medicine"])
     return TestClient(
-        create_app(lambda: insights_db, require_sign_in=False, staff_roster_path=lambda: roster)
+        create_app(lambda: insights_db, require_sign_in=False, staff_roster=lambda: roster)
     )
 
 
@@ -181,7 +181,7 @@ def test_the_api_falls_back_when_there_is_no_roster(insights_db: Path, tmp_path:
         create_app(
             lambda: insights_db,
             require_sign_in=False,
-            staff_roster_path=lambda: tmp_path / "missing.csv",
+            staff_roster=lambda: tmp_path / "missing.csv",
         )
     )
     body = client.get("/api/organisation").json()

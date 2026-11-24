@@ -243,3 +243,14 @@ models:
       - unique_combination:
           arguments:
             columns: [publication_key, author_key, org_key]
+
+  - name: dim_staff
+    description: >
+      One row per person on UNZA's public staff list: names, title, occupation and school
+      label. Public information only, with no staff ID (ADR-017). Used by the Members
+      directory and the school credit through ihub.staff.
+    columns:
+      - name: staff_key
+        data_tests: [unique, not_null]
+      - name: surname
+        data_tests: [not_null]

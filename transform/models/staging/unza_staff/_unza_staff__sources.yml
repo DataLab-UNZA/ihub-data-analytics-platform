@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: raw_unza_staff
+    description: >
+      UNZA's public staff list (a Google Sheet tab published as CSV), exactly as the
+      unza_staff connector fetched it. Only public columns are kept; there is no staff ID
+      (ADR-017).
+    schema: raw_unza_staff
+    tables:
+      - name: records
+        description: One row per staff row of the list.
+        columns:
+          - name: record_id
+            description: A hash of the row ("staff:<hash>"); the public list has no identifier.
+          - name: source
+            description: Always "unza_staff".
+          - name: fetched_at
+            description: When the connector fetched the list (UTC).
+          - name: payload
+            description: >
+              JSON with `Surname`, `First Name`, `Second Name`, `Title`, `Occupation` and
+              `School`, as written in the sheet.

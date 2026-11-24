@@ -10,8 +10,36 @@ from collections import defaultdict
 from collections.abc import Sequence
 from pathlib import Path
 
-from ihub.mart._duckdb import fetch
+from ihub.mart._duckdb import MartUnavailableError, fetch
 from ihub.mart.research import YearRange
+
+
+def public_staff(db_path: Path) -> list[dict[str, str | None]]:
+    """Return the public staff list (``marts.dim_staff``) as rows with the roster's column names.
+
+    Returns an empty list when the database has no ``dim_staff`` table (an older build).
+    """
+    try:
+        rows = fetch(
+            db_path,
+            """
+            SELECT surname, first_name, second_name, title, occupation, school_label
+            FROM marts.dim_staff
+            ORDER BY staff_key
+            """,
+        )
+    except MartUnavailableError:
+        return []
+    columns = ("Surname", "First Name", "Second Name", "Title", "Occupation", "School")
+    return [dict(zip(columns, row, strict=True)) for row in rows]
+
+
+def has_public_staff(db_path: Path) -> bool:
+    """Whether ``marts.dim_staff`` exists and has at least one person (a cheap check)."""
+    try:
+        return bool(fetch(db_path, "SELECT 1 FROM marts.dim_staff LIMIT 1"))
+    except MartUnavailableError:
+        return False
 
 
 def unza_authors(db_path: Path) -> list[tuple[str, str]]:

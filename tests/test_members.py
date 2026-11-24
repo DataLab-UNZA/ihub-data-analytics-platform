@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from ihub.api.app import create_app
 from ihub.auth.rbac import ROLE_PERMISSIONS, Permission, Role
-from ihub.staff.roster import load_roster
+from ihub.staff.roster import load_roster, staff_key
 from tests.auth_helpers import ADMIN, STAFF, make_harness
 
 HEADER = "Staff ID,Surname,First Name,Second Name,Title,Occupation,School\n"
@@ -22,7 +22,7 @@ def roster_with(tmp_path: Path, *rows: str) -> Path:
 
 def client_for(insights_db: Path, roster: Path) -> TestClient:
     return TestClient(
-        create_app(lambda: insights_db, require_sign_in=False, staff_roster_path=lambda: roster)
+        create_app(lambda: insights_db, require_sign_in=False, staff_roster=lambda: roster)
     )
 
 
@@ -122,7 +122,7 @@ def test_the_members_routes_need_the_members_permission(insights_db: Path, tmp_p
         lambda: insights_db,
         auth_service=lambda: h.service,
         require_sign_in=True,
-        staff_roster_path=lambda: roster,
+        staff_roster=lambda: roster,
     )
     anonymous = TestClient(app)
     assert anonymous.get("/api/members").status_code == 401
@@ -184,7 +184,7 @@ def test_the_overrides_file_is_read_leniently(tmp_path: Path) -> None:
 
     assert load_overrides(tmp_path / "missing.csv") == {}
     path = tmp_path / "o.csv"
-    path.write_text("Staff ID,Author ID\n7,A5000315992\n7,0000-0002-3868-4319\n,A1\n8,junk\n")
+    path.write_text("Staff key,Author ID\n7,A5000315992\n7,0000-0002-3868-4319\n,A1\n8,junk\n")
     assert load_overrides(path) == {"7": frozenset({"A5000315992", "0000-0002-3868-4319"})}
     assert overrides_path(tmp_path / "staff_roster.csv").name == "staff_author_overrides.csv"
 
@@ -227,9 +227,13 @@ def pinnable_db(insights_db: Path, tmp_path: Path) -> Path:
     return copy
 
 
+#: Bob Kakanda's staff key: pins name a person by key, not by HR staff ID (ADR-017).
+BOB = staff_key({"Surname": "KAKANDA", "First Name": "BOB", "Second Name": "", "School": "Law"})
+
+
 def pin_file(roster: Path, *rows: str) -> None:
     (roster.parent / "staff_author_overrides.csv").write_text(
-        "Staff ID,Author ID\n" + "".join(rows), encoding="utf-8"
+        "Staff key,Author ID\n" + "".join(rows), encoding="utf-8"
     )
 
 
@@ -237,7 +241,7 @@ def test_a_pinned_author_appears_under_the_staff_member_with_a_different_name(
     pinnable_db: Path, tmp_path: Path
 ) -> None:
     roster = roster_with(tmp_path, "5,KAKANDA,BOB,,Dr,LECTURER,Law\n")
-    pin_file(roster, f"5,{ORCID}\n")  # Alice Mwansa's ORCID: the names do not match at all
+    pin_file(roster, f"{BOB},{ORCID}\n")  # Alice Mwansa's ORCID: the names do not match at all
     client = client_for(pinnable_db, roster)
     row = client.get("/api/members").json()["rows"][0]
     assert (row["title"], row["name"], row["school"]) == ("Dr", "Bob Kakanda", "School of Law")
@@ -249,7 +253,7 @@ def test_a_pinned_author_appears_under_the_staff_member_with_a_different_name(
 
 def test_a_pin_wins_over_the_name_match(pinnable_db: Path, tmp_path: Path) -> None:
     roster = roster_with(tmp_path, ALICE, "5,KAKANDA,BOB,,Dr,LECTURER,Law\n")
-    pin_file(roster, f"5,{ORCID}\n")
+    pin_file(roster, f"{BOB},{ORCID}\n")
     names = [r["name"] for r in client_for(pinnable_db, roster).get("/api/members").json()["rows"]]
     assert names == ["Bob Kakanda"]  # Alice Mwansa is pinned away from her namesake
 
@@ -267,7 +271,7 @@ def test_editing_the_overrides_file_is_picked_up(pinnable_db: Path, tmp_path: Pa
     roster = roster_with(tmp_path, ALICE, "5,KAKANDA,BOB,,Dr,LECTURER,Law\n")
     client = client_for(pinnable_db, roster)
     assert [r["name"] for r in client.get("/api/members").json()["rows"]] == ["Alice Mwansa"]
-    pin_file(roster, f"5,{ORCID}\n")
+    pin_file(roster, f"{BOB},{ORCID}\n")
     assert [r["name"] for r in client.get("/api/members").json()["rows"]] == ["Bob Kakanda"]
 
 

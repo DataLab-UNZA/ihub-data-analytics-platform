@@ -57,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
         print("Could not read the database or the roster.", file=sys.stderr)
         return 1
     roster, result = linked
-    matched = {link.staff_id for link in result.links.values() if link.staff_id}
+    matched = {link.staff_key for link in result.links.values() if link.staff_key}
     authors = []
     for key, name in staff_links.unza_authors(args.db):
         tokens = [word for word in name_words(name) if len(word) > 1]
@@ -69,17 +69,17 @@ def main(argv: list[str] | None = None) -> int:
 
     writer = csv.writer(sys.stdout)
     writer.writerow(
-        ["Staff ID", "Author ID", "Staff name", "School", "Author name", "Publications"]
+        ["Staff key", "Author ID", "Staff name", "School", "Author name", "Publications"]
     )
     for member in roster.members:
-        if member.school is None or member.staff_id in matched:
+        if member.school is None or member.staff_key in matched:
             continue
         for key, name in candidates(member, authors):
             openalex, orcid = ids.get(key, (None, None))
             author_id = (openalex or "").rsplit("/", 1)[-1] or orcid or ""
             writer.writerow(
                 [
-                    member.staff_id,
+                    member.staff_key,
                     author_id,
                     member.display_name,
                     member.school,
