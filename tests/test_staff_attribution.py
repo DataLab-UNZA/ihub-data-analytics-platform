@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from ihub.api.app import create_app
 from ihub.mart.research import YearRange
 from ihub.staff import attribution as at
-from ihub.staff.roster import load_roster
+from ihub.staff.roster import load_roster, staff_key
 
 HEADER = "Staff ID,Surname,First Name,Second Name,Title,Occupation,School\n"
 MEDICINE = "School of Medicine"
@@ -58,7 +58,12 @@ def test_a_fellow_takes_the_school_of_their_department_or_none(tmp_path: Path) -
     authors = [("a1", "Kaiko Mubita")]
     assert link(tmp_path, rows, authors).stats.fellows_without_evidence == 1
     alone = link(tmp_path, rows, authors).links["a1"]  # listed as a member, but nothing to credit
-    assert (alone.basis, alone.schools, alone.staff_id) == (at.FELLOW_NO_SCHOOL, frozenset(), "1")
+    kaiko = staff_key({"Surname": "MUBITA", "First Name": "KAIKO", "School": "SDF"})
+    assert (alone.basis, alone.schools, alone.staff_key) == (
+        at.FELLOW_NO_SCHOOL,
+        frozenset(),
+        kaiko,
+    )
     result = link(tmp_path, rows, authors, {"a1": frozenset({EDUCATION})})
     assert result.links["a1"] == at.AuthorLink(frozenset({EDUCATION}), at.FELLOW, "exact")
 
@@ -158,7 +163,7 @@ def test_a_changed_roster_file_is_read_again(insights_db: Path, tmp_path: Path) 
 def client(insights_db: Path, tmp_path: Path) -> TestClient:
     roster = roster_from(tmp_path, ["1001,MWANSA,ALICE,,Dr,LECTURER,Medicine"])
     return TestClient(
-        create_app(lambda: insights_db, require_sign_in=False, staff_roster_path=lambda: roster)
+        create_app(lambda: insights_db, require_sign_in=False, staff_roster=lambda: roster)
     )
 
 
@@ -182,7 +187,7 @@ def test_the_api_falls_back_when_there_is_no_roster(insights_db: Path, tmp_path:
         create_app(
             lambda: insights_db,
             require_sign_in=False,
-            staff_roster_path=lambda: tmp_path / "missing.csv",
+            staff_roster=lambda: tmp_path / "missing.csv",
         )
     )
     body = client.get("/api/organisation").json()

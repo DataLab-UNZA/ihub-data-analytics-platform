@@ -82,7 +82,7 @@ def test_the_guides_api_returns_themes(insights_db: Path) -> None:
 
 def test_a_guide_runs_through_the_api_and_csv(insights_db: Path, roster: Path) -> None:
     client = TestClient(
-        create_app(lambda: insights_db, require_sign_in=False, staff_roster_path=lambda: roster)
+        create_app(lambda: insights_db, require_sign_in=False, staff_roster=lambda: roster)
     )
     for guide in explore_guides.GUIDES:
         response = client.post("/api/explore/query", json=guide.spec)
@@ -164,7 +164,7 @@ def test_school_charts_use_the_same_credit_as_the_organisation_screen(
     )
     assert result.rows == [["School of Medicine", 4]]
     client = TestClient(
-        create_app(lambda: insights_db, require_sign_in=False, staff_roster_path=lambda: roster)
+        create_app(lambda: insights_db, require_sign_in=False, staff_roster=lambda: roster)
     )
     credit = client.get("/api/organisation").json()["school_credit"]["schools"][0]
     assert credit["roster_publications"] == 4

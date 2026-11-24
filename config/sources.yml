@@ -57,3 +57,8 @@ sources:
       - ZJRCI      # Zambia Journal of Religion and Contemporary Issues
       - ZLJ        # Zambia Law Journal
       - ZJOCI      # ZANGO: Zambian Journal of Contemporary Issues
+  unza_staff:
+    # UNZA's public staff list (names, title, occupation, school), a Google Sheet tab
+    # published as CSV. Its address is UNZA_STAFF_LIST_URL; staff IDs are never fetched
+    # (ADR-017). Feeds marts.dim_staff, which the Members directory and school credit use.
+    enabled: true

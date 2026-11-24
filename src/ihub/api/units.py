@@ -17,7 +17,7 @@ from ihub.mart import coverage, staff_links, units
 from ihub.mart.insights import UNASSIGNED_UNIT
 from ihub.mart.research import YearRange, year_bounds
 from ihub.staff import attribution
-from ihub.staff.overrides import overrides_path
+from ihub.staff.sources import RosterProvider, RosterSource, as_source
 
 #: Publications with no roster-linked school, shown as a unit of their own.
 NOT_CREDITED = "Not credited to a school"
@@ -38,12 +38,12 @@ class UnitScope:
     """Resolves unit names to publication sets for a period."""
 
     database_path: Callable[[], Path]
-    staff_roster_path: Callable[[], Path | None]
+    staff_roster: RosterProvider
 
     def publication_sets(self, years: YearRange) -> dict[str, frozenset[str]]:
         """Return unit name -> publication keys, for every unit the screens can offer."""
         db = self.database_path()
-        roster = self.staff_roster_path()
+        roster = self.staff_roster()
         sets = attribution.school_publications(db, roster, years) if roster else None
         if sets is None:
             return units.department_publications(db, years)
@@ -94,14 +94,9 @@ class UnitScope:
         kept until the database, the roster or the overrides file changes.
         """
         db = self.database_path()
-        roster = self.staff_roster_path()
-        key = (
-            str(db),
-            _stamp(db),
-            str(roster or ""),
-            _stamp(roster),
-            _stamp(overrides_path(roster) if roster else None),
-        )
+        roster = self.staff_roster()
+        source = as_source(roster)
+        key = (str(db), _stamp(db), source.version() if source else None)
         cached = _chart_cache.get(key)
         if cached is None:
             _chart_cache.clear()  # one entry: a rebuilt database or roster replaces it
@@ -119,7 +114,7 @@ class UnitScope:
         return {name: cached[name] for name in names if name in cached}
 
     @staticmethod
-    def _author_units(db: Path, roster: Path | None) -> list[tuple[str, str]]:
+    def _author_units(db: Path, roster: RosterSource | Path | None) -> list[tuple[str, str]]:
         """``(author_key, school)`` for authors linked to a school (roster, else departments)."""
         linked = attribution.linked_authors(db, roster) if roster else None
         if linked is not None:

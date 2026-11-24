@@ -27,6 +27,7 @@ from ihub.auth.email_codes import EmailCodeService
 from ihub.auth.google import GoogleOAuthClient
 from ihub.auth.service import AuthService, SignInResult
 from ihub.auth.sqlite_store import SqliteAuthStore
+from ihub.auth.store import AuthStore
 from ihub.auth.tokens import TokenService
 
 DOMAIN = "unza.ac.zm"
@@ -134,7 +135,7 @@ class Harness:
     """A service and everything behind it, for one test."""
 
     service: AuthService
-    store: SqliteAuthStore
+    store: AuthStore
     clock: FakeClock
     email: RecordingEmailSender
     google: FakeGoogle
@@ -160,6 +161,7 @@ def make_harness(
     with_email: bool = True,
     bootstrap_admins: frozenset[str] = frozenset({ADMIN}),
     domain: str = DOMAIN,
+    store: AuthStore | None = None,
 ) -> Harness:
     clock = FakeClock()
     config = AuthConfig(
@@ -170,7 +172,8 @@ def make_harness(
         bootstrap_admins=bootstrap_admins,
     )
     db_path = tmp_path / "auth.sqlite"
-    store = SqliteAuthStore(db_path)
+    if store is None:
+        store = SqliteAuthStore(db_path)
     email = RecordingEmailSender()
     google = FakeGoogle()
     service = AuthService(

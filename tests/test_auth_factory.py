@@ -21,7 +21,7 @@ def test_production_is_the_default_and_needs_a_secret(tmp_path: Path) -> None:
 
 
 def test_production_refuses_a_temporary_user_store(tmp_path: Path) -> None:
-    with pytest.raises(AuthNotConfiguredError, match="persistent user store"):
+    with pytest.raises(AuthNotConfiguredError, match="IHUB_AUTH_STORE=firestore"):
         build_auth_service(settings(tmp_path, ihub_auth_secret=SECRET))
 
 

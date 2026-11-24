@@ -42,6 +42,7 @@ spec:
           env:
             - name: IHUB_API_URL
               value: http://127.0.0.1:8000
+            # Sign-in is required (ADR-010); users are kept in Firestore (ADR-009, ADR-016).
             - name: IHUB_REQUIRE_SIGN_IN
               value: "true"
           resources:
@@ -53,12 +54,9 @@ spec:
           env:
             - name: IHUB_REQUIRE_SIGN_IN
               value: "true"
-            # This instance-local account store works without a Cloud database. It is
-            # erased whenever Cloud Run replaces or stops the instance.
-            - name: IHUB_ALLOW_EPHEMERAL_AUTH
-              value: "true"
-            - name: IHUB_AUTH_DB_PATH
-              value: /tmp/ihub-auth.sqlite
+            # Users, sessions and photos live in Firestore, which survives restarts (ADR-016).
+            - name: IHUB_AUTH_STORE
+              value: firestore
             # Sign-in settings (Google OAuth, SMTP, auth secret), from GitHub secrets and
             # variables. deploy.yml writes one entry per value that is set, already quoted,
             # in place of the line below. See docs/DEPLOYMENT.md.

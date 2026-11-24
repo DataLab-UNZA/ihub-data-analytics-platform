@@ -43,7 +43,7 @@ export default async function AccountPage() {
 
       <div className="grid grid--main-aside">
         <div className="stack stack--md">
-          <Card aria-labelledby="photo-title">
+          <Card id="profile-photo" aria-labelledby="photo-title">
             <CardHeader id="photo-title" title="Profile photo" subtitle="PNG, JPEG or WebP, up to 2 MB. Shown in the top bar." />
             <div className="account-photo">
               <Avatar user={user} size="lg" />

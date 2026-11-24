@@ -19,6 +19,7 @@ from ihub.mart import members as member_queries
 from ihub.mart import research
 from ihub.mart.research import PublicationFilter, YearRange
 from ihub.staff import members as staff_members
+from ihub.staff.sources import RosterProvider, RosterSource
 
 Types = Annotated[list[str] | None, Query(alias="type")]
 Sources = Annotated[list[str] | None, Query(alias="source")]
@@ -51,7 +52,9 @@ class Summary:
         }
 
 
-def _summaries(db: Path, roster: Path, selected: PublicationFilter) -> list[Summary] | None:
+def _summaries(
+    db: Path, roster: RosterSource | Path, selected: PublicationFilter
+) -> list[Summary] | None:
     """Totals per member over the publications matching ``selected`` (period, source, type)."""
     years = selected.years or research.year_bounds(db)
     records = staff_members.directory(db, roster)
@@ -85,7 +88,7 @@ def _summaries(db: Path, roster: Path, selected: PublicationFilter) -> list[Summ
 
 def build_members_router(
     database_path: Callable[[], Path],
-    staff_roster_path: Callable[[], Path | None],
+    staff_roster: RosterProvider,
     *,
     read: Sequence[Any] = (),
 ) -> APIRouter:
@@ -107,7 +110,7 @@ def build_members_router(
         )
 
     def summaries(selected: PublicationFilter) -> list[Summary] | None:
-        roster = staff_roster_path()
+        roster = staff_roster()
         return _summaries(database_path(), roster, selected) if roster else None
 
     @router.get("/members")

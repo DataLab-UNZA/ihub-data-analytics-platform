@@ -166,6 +166,7 @@ INERT_RAW: dict[str, tuple[str, dict[str, Any]]] = {
             "employments": {"affiliation-group": []},
         },
     ),
+    "unza_staff": ("staff:inert", {"Surname": ""}),
 }
 
 
@@ -177,8 +178,9 @@ def build_warehouse(
 ) -> Path:
     """Load OpenAlex ``works`` into raw_openalex and run ``dbt build`` for ``select``.
 
-    ``extra_raw`` maps a source name (dspace_oai, ojs, orcid) to its ``(record_id, payload)``
-    pairs; a source not given gets one inert deleted record so its raw table exists.
+    ``extra_raw`` maps a source name (dspace_oai, ojs, orcid, unza_staff) to its
+    ``(record_id, payload)`` pairs; a source not given gets one inert deleted record so its
+    raw table exists.
     """
     load_raw(db, "openalex", [(w["id"], w) for w in works])
     extra = extra_raw or {}

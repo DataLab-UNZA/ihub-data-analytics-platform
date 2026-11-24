@@ -29,6 +29,7 @@ from ihub.connectors.dspace_oai import DSpaceOaiConnector
 from ihub.connectors.ojs import OjsConnector
 from ihub.connectors.openalex import OpenAlexConnector
 from ihub.connectors.orcid import OrcidConnector
+from ihub.connectors.unza_staff import UnzaStaffConnector
 from ihub.ingest.raw import write_raw
 from ihub.settings import get_settings
 
@@ -41,6 +42,7 @@ CONNECTORS: list[type[Connector]] = [
     DSpaceOaiConnector,
     OjsConnector,
     OrcidConnector,
+    UnzaStaffConnector,
 ]
 
 

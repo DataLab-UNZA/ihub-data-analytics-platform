@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     ihub_duckdb_path: Path = Path("data/ihub.duckdb")
     # Private HR roster used to credit schools (ADR-012). Git-ignored; absent in production.
     ihub_staff_roster_path: Path = Path("data/private/staff_roster.csv")
+    # Published CSV of the public staff list (names, title, occupation, school; ADR-017)
+    unza_staff_list_url: str | None = None
 
     # OpenAlex
     openalex_mailto: str | None = None
@@ -39,6 +41,9 @@ class Settings(BaseSettings):
     ihub_allowed_email_domain: str = "unza.ac.zm"
     ihub_bootstrap_admins: str = ""
     ihub_auth_db_path: Path = Path("data/auth.sqlite")
+    # Where users are kept: "sqlite" (local) or "firestore" (production, ADR-009)
+    ihub_auth_store: str = "sqlite"
+    ihub_firestore_database: str = "(default)"
     # Explicitly allow the non-durable SQLite store in a production container.
     # It is for demonstrations only: Cloud Run can erase it at any restart.
     ihub_allow_ephemeral_auth: bool = False

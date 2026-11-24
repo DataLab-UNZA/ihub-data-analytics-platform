@@ -16,6 +16,7 @@ from ihub.mart import coverage, insights, research
 from ihub.mart.research import PublicationFilter, YearRange
 from ihub.mart.status import last_pipeline_run
 from ihub.staff import attribution
+from ihub.staff.sources import RosterProvider
 
 MAX_PAGE_SIZE = 100
 PREVIEW_ROWS = 10
@@ -45,7 +46,7 @@ def build_router(
     *,
     read: Sequence[Any] = (),
     export: Sequence[Any] = (),
-    staff_roster_path: Callable[[], Path | None] | None = None,
+    staff_roster: RosterProvider | None = None,
 ) -> APIRouter:
     """Create the router; ``database_path`` is called per request so tests can swap the file.
 
@@ -54,7 +55,7 @@ def build_router(
     ``require(research:read)`` and ``require(research:export)`` when sign-in is required.
     """
     router = APIRouter(prefix="/api")
-    scope = UnitScope(database_path, staff_roster_path or (lambda: None))
+    scope = UnitScope(database_path, staff_roster or (lambda: None))
 
     def school_credit(db: Path, years: YearRange, total_publications: int) -> dict[str, Any] | None:
         """Schools credited through the private staff roster (ADR-012), or None without one.
@@ -62,7 +63,7 @@ def build_router(
         The payload holds school-level numbers and match statistics only: never a name, a staff
         ID or a per-person result.
         """
-        roster = staff_roster_path() if staff_roster_path else None
+        roster = staff_roster() if staff_roster else None
         if roster is None:
             return None
         report = attribution.school_credit(db, roster, years, total_publications)

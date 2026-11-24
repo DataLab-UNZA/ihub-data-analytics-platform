@@ -14,13 +14,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ihub.staff.attribution import MEMBER_BASES, linked_authors
+from ihub.staff.sources import RosterSource
 
 
 @dataclass(frozen=True)
 class MemberRecord:
     """One roster staff member, and the author records that were matched to them."""
 
-    member_id: str  # opaque, stable for a staff ID; the staff ID itself is never exposed
+    member_id: str  # opaque, stable for a staff key; the staff key itself is never exposed
     title: str
     name: str
     school: str | None  # a fellow's school comes from department evidence, when there is one
@@ -28,25 +29,25 @@ class MemberRecord:
     fellow: bool = False  # a staff development fellow: the roster gives them no school
 
 
-def member_id(staff_id: str) -> str:
-    """Return the opaque id used in URLs for ``staff_id``."""
-    return "m" + hashlib.sha256(staff_id.encode("utf-8")).hexdigest()[:12]
+def member_id(staff_key: str) -> str:
+    """Return the opaque id used in URLs for ``staff_key``."""
+    return "m" + hashlib.sha256(staff_key.encode("utf-8")).hexdigest()[:12]
 
 
-def directory(db_path: Path, roster_path: Path) -> list[MemberRecord] | None:
-    """Return the matched staff, A to Z by name, or None when there is no roster file."""
+def directory(db_path: Path, roster_path: RosterSource | Path | None) -> list[MemberRecord] | None:
+    """Return the matched staff, A to Z by name, or None when there is no roster."""
     linked = linked_authors(db_path, roster_path)
     if linked is None:
         return None
     roster, result = linked
     by_staff: dict[str, list[str]] = defaultdict(list)
     for author_key, link in result.links.items():
-        if link.basis in MEMBER_BASES and link.staff_id:
-            by_staff[link.staff_id].append(author_key)
-    people = {member.staff_id: member for member in roster.members}
+        if link.basis in MEMBER_BASES and link.staff_key:
+            by_staff[link.staff_key].append(author_key)
+    people = {member.staff_key: member for member in roster.members}
     records = []
-    for staff_id, keys in by_staff.items():
-        person = people.get(staff_id)
+    for staff_key, keys in by_staff.items():
+        person = people.get(staff_key)
         if person is None:
             continue
         school = person.school
@@ -55,7 +56,7 @@ def directory(db_path: Path, roster_path: Path) -> list[MemberRecord] | None:
             school = next(iter(found)) if len(found) == 1 else None
         records.append(
             MemberRecord(
-                member_id=member_id(staff_id),
+                member_id=member_id(staff_key),
                 title=person.title,
                 name=person.display_name,
                 school=school,

@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: stg_unza_staff__staff
+    description: >
+      One row per person on UNZA's public staff list, with whitespace tidied. Rows without a
+      surname are left out. School labels are kept as written; ihub.staff maps them to units.
+    columns:
+      - name: staff_row_id
+        data_tests: [unique, not_null]
+      - name: surname
+        data_tests: [not_null]

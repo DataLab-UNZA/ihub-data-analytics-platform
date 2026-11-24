@@ -3,8 +3,9 @@
 - ``IHUB_ALLOWED_EMAIL_DOMAIN=*`` accepts any verified email address.
 - ``IHUB_ENV`` defaults to production. Only ``development`` allows a temporary secret
   (sign-ins end when the API restarts) and the console email sender.
-- Production needs a persistent user store (Firestore, ADR-009). Until it exists,
-  authentication refuses to run there, because Cloud Run's disk is temporary.
+- Production needs the persistent user store (``IHUB_AUTH_STORE=firestore``, ADR-009),
+  because Cloud Run's disk is temporary; the SQLite store is refused there unless
+  ``IHUB_ALLOW_EPHEMERAL_AUTH=true`` (demonstrations only).
 - A sign-in method is offered only when it is configured: Google needs the client ID,
   client secret and public URL; email codes need a mail transport (ihub.mail).
 """
@@ -24,9 +25,11 @@ from ihub.auth.config import (
 )
 from ihub.auth.email_codes import EmailCodeService, EmailSender, MailCodeSender
 from ihub.auth.errors import AuthNotConfiguredError
+from ihub.auth.firestore_store import FirestoreAuthStore
 from ihub.auth.google import GoogleOAuthClient
 from ihub.auth.service import AuthService
 from ihub.auth.sqlite_store import SqliteAuthStore
+from ihub.auth.store import AuthStore
 from ihub.auth.tokens import TokenService
 from ihub.mail.registry import MailNotConfiguredError, transport_from_settings
 from ihub.settings import Settings
@@ -84,6 +87,16 @@ def build_auth_service(settings: Settings, *, clock: Clock = utc_now) -> AuthSer
     secret = _secret(settings, development)
     if settings.ihub_allowed_email_domain.strip() == ANY_DOMAIN:
         logger.warning("IHUB_ALLOWED_EMAIL_DOMAIN=*: any verified email address can sign in.")
+    store_kind = settings.ihub_auth_store.strip().lower()
+    if store_kind not in ("sqlite", "firestore"):
+        raise AuthNotConfiguredError(
+            f"Sign-in is not available: unknown IHUB_AUTH_STORE {store_kind!r}."
+        )
+    if store_kind == "sqlite" and not development and not settings.ihub_allow_ephemeral_auth:
+        raise AuthNotConfiguredError(
+            "Sign-in is not available: production needs IHUB_AUTH_STORE=firestore (ADR-009), "
+            "or set IHUB_ALLOW_EPHEMERAL_AUTH=true to use the Cloud Run instance's temporary disk."
+        )
     config = AuthConfig(
         secret=secret,
         allowed_domain=settings.ihub_allowed_email_domain,
@@ -91,12 +104,11 @@ def build_auth_service(settings: Settings, *, clock: Clock = utc_now) -> AuthSer
         public_url=settings.ihub_public_url,
         bootstrap_admins=parse_email_list(settings.ihub_bootstrap_admins),
     )
-    if not development and not settings.ihub_allow_ephemeral_auth:
-        raise AuthNotConfiguredError(
-            "Sign-in is not available: production needs a persistent user store, or set "
-            "IHUB_ALLOW_EPHEMERAL_AUTH=true to use the Cloud Run instance's temporary disk."
-        )
-    store = SqliteAuthStore(settings.ihub_auth_db_path)
+    store: AuthStore
+    if store_kind == "firestore":
+        store = FirestoreAuthStore.connect(settings.ihub_firestore_database)
+    else:
+        store = SqliteAuthStore(settings.ihub_auth_db_path)
     return AuthService(
         config,
         store,

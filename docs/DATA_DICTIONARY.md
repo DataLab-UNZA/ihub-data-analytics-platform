@@ -182,6 +182,20 @@ Authorships come from OpenAlex, plus the name-only authors from the repository a
 | `source_kind` | VARCHAR | attribute | What kind of source it is, e.g. "bibliographic index". |
 | `description` | VARCHAR | attribute | What the platform takes from it. |
 
+### `dim_staff`
+
+**Grain:** one row per person on UNZA's public staff list (ADR-017). Not joined to the fact tables: `ihub.staff` matches these names to `dim_author` for the Members directory and the school credit. Public information only; there is no staff ID.
+
+| Column | Type | Role | Description |
+|---|---|---|---|
+| `staff_key` | VARCHAR | key | The row of the list (a hash; the list has no identifier). |
+| `surname` | VARCHAR | attribute | Surname, as the list writes it. |
+| `first_name` | VARCHAR | attribute | First name. NULL when blank. |
+| `second_name` | VARCHAR | attribute | Second name. NULL when blank. |
+| `title` | VARCHAR | attribute | Title, e.g. `Dr` or `Prof`. NULL when blank. |
+| `occupation` | VARCHAR | attribute | Occupation, e.g. `LECTURER`. NULL when blank. |
+| `school_label` | VARCHAR | attribute | School as the list writes it (e.g. `Law`, `SDF`); `ihub.staff.roster` maps it to a unit. |
+
 ## Bridge tables
 
 ### `bridge_publication_source`
