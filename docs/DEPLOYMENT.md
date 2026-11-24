@@ -59,15 +59,14 @@ The Google Cloud resources were created once with [`scripts/gcp_setup.sh`](../sc
 
 ## Sign-in (ADR-010)
 
-Production requires sign-in. The current deployment uses an **instance-local SQLite account store** in `/tmp/ihub-auth.sqlite`, so it needs no Firestore account or Cloud project change. This is suitable for demonstrations only: every account, profile photo, email code and session disappears whenever Cloud Run stops, restarts, scales to zero or deploys a new revision. The app is limited to one instance, so users do not receive different account stores simultaneously.
+Production requires sign-in. The current deployment uses an **instance-local SQLite account store** in `/tmp/ihub-auth.sqlite`, so it needs no cloud database. This is suitable for demonstrations only: every account, profile photo, email code and session disappears whenever Cloud Run stops, restarts, scales to zero or deploys a new revision. The app is limited to one instance, so users do not receive different account stores simultaneously.
 
-For durable real accounts, replace the temporary store with Firestore before relying on it operationally:
+Accounts are kept inside the app on purpose, with no cloud database (ADR-018). To set up sign-in:
 
-1. Create the Firestore store (ADR-009) and give `GCP_RUNTIME_SA` the `roles/datastore.user` role.
-2. Add the sign-in secrets and variables in GitHub (table above). The next deploy passes them to the `api`
-   container. (Secret Manager, mounted on the `api` container, is the stronger alternative from ADR-008.)
-3. In the Google Cloud console, list `<service URL>/auth/google/callback` as an authorised redirect URI of the OAuth client.
-4. Remove `IHUB_ALLOW_EPHEMERAL_AUTH` and use the Firestore-backed store.
+1. Add the sign-in secrets and variables in GitHub (table above). The next deploy passes them to the `api`
+   container.
+2. In the Google Cloud console, list `<service URL>/auth/google/callback` as an authorised redirect URI of the OAuth client.
+3. Leave `IHUB_PUBLIC_URL` empty (the deploy uses the `<service>-<project number>` address) or set it to the address people open.
 
 Never put the secret values in GitHub variables, the repository or workflow logs: only in environment secrets.
 

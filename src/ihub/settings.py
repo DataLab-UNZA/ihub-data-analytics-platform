@@ -41,9 +41,6 @@ class Settings(BaseSettings):
     ihub_allowed_email_domain: str = "unza.ac.zm"
     ihub_bootstrap_admins: str = ""
     ihub_auth_db_path: Path = Path("data/auth.sqlite")
-    # Where users are kept: "sqlite" (local) or "firestore" (production, ADR-009)
-    ihub_auth_store: str = "sqlite"
-    ihub_firestore_database: str = "(default)"
     # Explicitly allow the non-durable SQLite store in a production container.
     # It is for demonstrations only: Cloud Run can erase it at any restart.
     ihub_allow_ephemeral_auth: bool = False

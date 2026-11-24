@@ -1,4 +1,4 @@
-"""Repository interfaces for saved charts and dashboards (SQLite now, Firestore later)."""
+"""Repository interfaces for saved charts and dashboards (SQLite)."""
 
 from __future__ import annotations
 

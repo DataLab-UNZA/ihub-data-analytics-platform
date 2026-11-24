@@ -1,7 +1,7 @@
 """Repository interfaces for authentication data (ADR-009, ADR-010).
 
 The service depends on these small protocols, not on a database, so the SQLite store used
-in tests and development and the Firestore store used in production are interchangeable.
+in tests and development and any later store are interchangeable.
 """
 
 from __future__ import annotations

@@ -18,7 +18,6 @@ dependencies = [
     "fastapi>=0.163.1",
     "uvicorn>=0.54.0",
     "pyjwt[crypto]>=2.10",
-    "google-cloud-firestore>=2.34.1",
 ]
 
 [dependency-groups]
