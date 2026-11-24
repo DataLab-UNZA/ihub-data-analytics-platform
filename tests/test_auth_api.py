@@ -220,3 +220,17 @@ def test_require_admits_only_roles_with_the_permission(h: Harness, insights_db: 
     response = client.get("/api/test/export", headers=bearer(analyst.json()))
     assert response.status_code == 200
     assert response.json() == {"role": "analyst"}
+
+
+def test_a_failed_code_email_says_why(
+    h: Harness, client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from ihub.mail.transport import MailDeliveryError
+
+    def refuse(to: str, code: str, valid_minutes: int) -> None:
+        raise MailDeliveryError("The SMTP server smtp.example.org refused the username (code 535).")
+
+    monkeypatch.setattr(h.email, "send_sign_in_code", refuse)
+    response = client.post("/api/auth/email/request", json={"email": STAFF})
+    assert response.status_code == 502
+    assert "code 535" in response.json()["detail"]
