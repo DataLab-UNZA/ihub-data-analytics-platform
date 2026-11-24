@@ -125,9 +125,19 @@ jobs:
           # IHUB_BOOTSTRAP_ADMINS (repository variable) adds more.
           IHUB_BOOTSTRAP_ADMINS="bruce.mainza@cs.unza.zm,mainzabruce06@gmail.com,chilandu.phiri@cs.unza.zm${IHUB_BOOTSTRAP_ADMINS:+,$IHUB_BOOTSTRAP_ADMINS}"
           # Google redirects sign-ins back to the app's own address, so default to it.
+          # Cloud Run gives the service two addresses; people open the one with the project
+          # number (<service>-<number>.<region>.run.app), so Google must return there too,
+          # or the browser's sign-in cookie is on the other address and the sign-in fails.
           if [ -z "$IHUB_PUBLIC_URL" ]; then
-            IHUB_PUBLIC_URL="$(gcloud run services describe "$SERVICE" --region "${{ vars.GCP_REGION }}" \
-              --format='value(status.url)' 2>/dev/null || true)"
+            urls="$(gcloud run services describe "$SERVICE" --region "${{ vars.GCP_REGION }}" \
+              --format='json(metadata.annotations)' 2>/dev/null \
+              | jq -r '.metadata.annotations["run.googleapis.com/urls"] // "[]" | fromjson | .[]' || true)"
+            IHUB_PUBLIC_URL="$(echo "$urls" | grep -E -- '-[0-9]+\.[a-z0-9-]+\.run\.app$' | head -1)"
+            if [ -z "$IHUB_PUBLIC_URL" ]; then
+              IHUB_PUBLIC_URL="$(gcloud run services describe "$SERVICE" --region "${{ vars.GCP_REGION }}" \
+                --format='value(status.url)' 2>/dev/null || true)"
+            fi
+            echo "Sign-in address: $IHUB_PUBLIC_URL" >> "$GITHUB_STEP_SUMMARY"
           fi
           # One env entry per value that is set. jq quotes each value as a JSON string, which is
           # also valid YAML, so quotes or backslashes in a password cannot break the file.

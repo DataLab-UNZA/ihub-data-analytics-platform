@@ -3,6 +3,7 @@ and the authentication and administration routes in :mod:`ihub.auth.api` (ADR-01
 
 from __future__ import annotations
 
+import logging
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -19,12 +20,15 @@ from ihub.auth.errors import AuthError
 from ihub.auth.factory import build_auth_service
 from ihub.auth.rbac import Permission
 from ihub.auth.service import AuthService
+from ihub.mail.transport import MailDeliveryError
 from ihub.mart.research import MartUnavailableError
 from ihub.settings import get_settings
 from ihub.staff.sources import RosterProvider, choose_roster
 from ihub.workspace.api import WorkspaceProvider, build_workspace_router
 from ihub.workspace.service import WorkspaceService
 from ihub.workspace.sqlite_store import SqliteWorkspaceStore
+
+logger = logging.getLogger(__name__)
 
 
 class LazyAuthService:
@@ -103,6 +107,15 @@ def create_app(
     async def auth_error(_: Request, exc: AuthError) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code, content={"detail": exc.message}, headers=exc.headers
+        )
+
+    @app.exception_handler(MailDeliveryError)
+    async def mail_failed(_: Request, exc: MailDeliveryError) -> JSONResponse:
+        # The reason (server, port, SMTP code) never contains credentials; showing it lets
+        # the person signing in, and the team, see why no code arrived.
+        logger.error("Sign-in email not sent: %s", exc)
+        return JSONResponse(
+            status_code=502, content={"detail": f"We could not send the code email. {exc}"}
         )
 
     @app.exception_handler(ValueError)
