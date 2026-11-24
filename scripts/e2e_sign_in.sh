@@ -70,7 +70,7 @@ check "a wrong code returns to the code screen" "$(loc -c $MJ -b $MJ -X POST $W/
 has "it says how many attempts are left" "$(curl -s -b $MJ $W/verify-code)" "4 attempts left"
 check "a cross-site form post is refused" "$(status -b $MJ -H 'Origin: https://evil.example' -X POST $W/auth/email/verify -d "code=$CODE")" "403"
 H=$(curl -s -D - -o /dev/null -c $MJ -b $MJ -X POST $W/auth/email/verify -d "code-1=${CODE:0:1}&code-2=${CODE:1:1}&code-3=${CODE:2:1}&code-4=${CODE:3:1}&code-5=${CODE:4:1}&code-6=${CODE:5:1}")
-has "the right code (six boxes) signs in and returns to /publications" "$H" "location: $W/publications"
+has "the right code (six boxes) signs in and returns to /publications" "$H" "location: /publications"
 has "access token cookie is httpOnly, SameSite=Lax" "$(echo "$H" | grep -i 'set-cookie: ihub_at=')" "HttpOnly; SameSite=lax"
 has "refresh token cookie is httpOnly" "$(echo "$H" | grep -i 'set-cookie: ihub_rt=')" "HttpOnly"
 check "the code works only once" "$(curl -s -o /dev/null -w '%{http_code}' -X POST $A/api/auth/email/verify -H 'content-type: application/json' -d "{\"email\":\"$MEMBER\",\"code\":\"$CODE\"}")" "400"
@@ -163,7 +163,7 @@ has "with a reason" "$(curl -s -b $UJ $W/account)" "Another account already uses
 
 echo "10. Explore, charts and dashboards (Superset-style)"
 XJ=$S/explorer.jar; sign_in $XJ e2e.explorer@example.org
-has "Explore opens with RUN and SAVE" "$(curl -s -b $XJ $W/explore)" ">RUN<"
+has "Explore opens with the chart builder" "$(curl -s -b $XJ $W/explore)" "Build your own chart"
 Q='{"dataset":"publications","metrics":["count"],"groupby":["year"],"row_limit":5}'
 has "a member can run a query through /bff" "$(curl -s -b $XJ -X POST $W/bff/explore/query -H 'content-type: application/json' -d "$Q")" '"row_count":5'
 check "a member cannot save a chart" "$(status -b $XJ -X POST $W/bff/charts -H 'content-type: application/json' -d "{\"name\":\"x\",\"viz_type\":\"bar\",\"params\":$Q}")" "403"
