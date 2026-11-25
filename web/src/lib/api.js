@@ -81,6 +81,21 @@ export async function apiTry(path, params) {
   }
 }
 
+/**
+ * Awaits optional data: null when the API fails (ApiError), so the rest of the page still
+ * renders. Anything else is rethrown, including the redirect to sign in.
+ */
+export async function optional(promise) {
+  try {
+    return await promise;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 /** Streams a raw API response (used to proxy CSV downloads). */
 export async function apiRaw(path, params) {
   return fetch(buildUrl(path, params), { cache: 'no-store', headers: await authHeaders() });

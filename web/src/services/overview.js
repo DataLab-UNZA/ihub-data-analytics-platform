@@ -101,6 +101,9 @@ export async function loadOverview(filters) {
       ? { name: countryName(topPartner.country_code), publications: topPartner.publications }
       : null,
     oaShare: now.open_access_share,
+    oaPerYear: data.oa_per_year,
+    citations: now.citations,
+    publications: now.publications,
     oaChange: before && before.publications ? now.open_access_share - before.open_access_share : null,
     missingFromRepository: data.missing_from_repository,
     stale: { isStale: isStale(lastRun), lastRun: formatRefreshed(lastRun) },

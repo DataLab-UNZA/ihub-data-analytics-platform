@@ -1,0 +1,168 @@
+{
+  "_comment": "Made-up sample data for modules that are not connected yet (HR, student information, learning management). Each result has the same shape as /api/explore/query, so the charts draw exactly like the live research charts. Replace each module with a live source when it is connected.",
+  "hr": [
+    {
+      "id": "hr-staff-by-rank",
+      "title": "Academic staff by rank",
+      "question": "How are academic staff spread across the ranks?",
+      "how_to_read": "Each slice is one academic rank. The larger the slice, the more staff hold that rank.",
+      "viz": "pie",
+      "options": { "donut": true },
+      "result": {
+        "columns": [
+          { "key": "c0", "label": "Rank", "type": "string", "is_metric": false, "format": "number" },
+          { "key": "m0", "label": "Staff", "type": "number", "is_metric": true, "format": "number" }
+        ],
+        "rows": [
+          ["Professor", 48],
+          ["Associate Professor", 96],
+          ["Senior Lecturer", 212],
+          ["Lecturer", 486],
+          ["Assistant Lecturer", 158]
+        ],
+        "row_count": 5
+      }
+    },
+    {
+      "id": "hr-headcount-per-year",
+      "title": "Staff headcount per year",
+      "question": "Is the number of academic, administrative and support staff changing?",
+      "how_to_read": "Each bar is one year, split into academic, administrative and support staff.",
+      "viz": "bar",
+      "options": { "stacked": true },
+      "result": {
+        "columns": [
+          { "key": "c0", "label": "Year", "type": "year", "is_metric": false, "format": "number" },
+          { "key": "c1", "label": "Staff category", "type": "string", "is_metric": false, "format": "number" },
+          { "key": "m0", "label": "Staff", "type": "number", "is_metric": true, "format": "number" }
+        ],
+        "rows": [
+          [2021, "Academic", 912],
+          [2021, "Administrative", 604],
+          [2021, "Support", 1180],
+          [2022, "Academic", 938],
+          [2022, "Administrative", 611],
+          [2022, "Support", 1164],
+          [2023, "Academic", 961],
+          [2023, "Administrative", 626],
+          [2023, "Support", 1152],
+          [2024, "Academic", 984],
+          [2024, "Administrative", 640],
+          [2024, "Support", 1139],
+          [2025, "Academic", 1000],
+          [2025, "Administrative", 652],
+          [2025, "Support", 1127]
+        ],
+        "row_count": 15
+      }
+    }
+  ],
+  "students": [
+    {
+      "id": "sis-enrolment-per-year",
+      "title": "Enrolment per year",
+      "question": "How many undergraduate and postgraduate students are enrolled each year?",
+      "how_to_read": "Each band is one level of study. The top of the bands is the total enrolment for that year.",
+      "viz": "area",
+      "options": { "stacked": true },
+      "result": {
+        "columns": [
+          { "key": "c0", "label": "Year", "type": "year", "is_metric": false, "format": "number" },
+          { "key": "c1", "label": "Level", "type": "string", "is_metric": false, "format": "number" },
+          { "key": "m0", "label": "Students", "type": "number", "is_metric": true, "format": "number" }
+        ],
+        "rows": [
+          [2021, "Undergraduate", 24850],
+          [2021, "Postgraduate", 3420],
+          [2022, "Undergraduate", 25910],
+          [2022, "Postgraduate", 3615],
+          [2023, "Undergraduate", 26780],
+          [2023, "Postgraduate", 3890],
+          [2024, "Undergraduate", 27640],
+          [2024, "Postgraduate", 4105],
+          [2025, "Undergraduate", 28320],
+          [2025, "Postgraduate", 4380]
+        ],
+        "row_count": 10
+      }
+    },
+    {
+      "id": "sis-students-by-school",
+      "title": "Students by school",
+      "question": "Which schools teach the most students?",
+      "how_to_read": "Each bar is one school's enrolment this year.",
+      "viz": "bar",
+      "options": { "horizontal": true, "show_legend": false },
+      "result": {
+        "columns": [
+          { "key": "c0", "label": "School", "type": "string", "is_metric": false, "format": "number" },
+          { "key": "m0", "label": "Students", "type": "number", "is_metric": true, "format": "number" }
+        ],
+        "rows": [
+          ["Education", 6120],
+          ["Humanities", 5480],
+          ["Natural Sciences", 4210],
+          ["Business", 3390],
+          ["Medicine", 2960],
+          ["Engineering", 2740],
+          ["Law", 1830],
+          ["Agriculture", 1650]
+        ],
+        "row_count": 8
+      }
+    }
+  ],
+  "lms": [
+    {
+      "id": "lms-weekly-active-learners",
+      "title": "Weekly active learners",
+      "question": "How many students use the learning platform each week of the semester?",
+      "how_to_read": "Each point is one teaching week. Peaks usually match assignment deadlines and tests.",
+      "viz": "line",
+      "options": { "show_legend": false },
+      "result": {
+        "columns": [
+          { "key": "c0", "label": "Week", "type": "number", "is_metric": false, "format": "number" },
+          { "key": "m0", "label": "Active learners", "type": "number", "is_metric": true, "format": "number" }
+        ],
+        "rows": [
+          [1, 14200],
+          [2, 17850],
+          [3, 19400],
+          [4, 20100],
+          [5, 21950],
+          [6, 23400],
+          [7, 18600],
+          [8, 21200],
+          [9, 22700],
+          [10, 24100],
+          [11, 25300],
+          [12, 27800]
+        ],
+        "row_count": 12
+      }
+    },
+    {
+      "id": "lms-activity-by-type",
+      "title": "Learning activity by type",
+      "question": "What do students do most on the learning platform?",
+      "how_to_read": "Each bar counts one kind of activity across all courses this semester: resources viewed, quizzes taken, videos watched, assignments submitted and forum posts.",
+      "viz": "bar",
+      "options": { "show_legend": false },
+      "result": {
+        "columns": [
+          { "key": "c0", "label": "Activity", "type": "string", "is_metric": false, "format": "number" },
+          { "key": "m0", "label": "Actions", "type": "number", "is_metric": true, "format": "number" }
+        ],
+        "rows": [
+          ["Resources", 412500],
+          ["Quizzes", 158300],
+          ["Videos", 121900],
+          ["Assignments", 96400],
+          ["Forum posts", 38700]
+        ],
+        "row_count": 5
+      }
+    }
+  ]
+}
