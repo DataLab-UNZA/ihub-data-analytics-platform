@@ -1,6 +1,8 @@
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { Inter, Playfair_Display, Roboto } from 'next/font/google';
+import { cookies } from 'next/headers';
 import Providers from '@/theme/Providers';
+import { THEME_COOKIE, themeMode } from '@/theme/mode';
 import '@/styles/global.css';
 
 // Inter is Apache Superset's typeface; Playfair Display is kept for the sign-in heading.
@@ -39,12 +41,14 @@ export const viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  // The colour mode is read on the server, so the first paint is already in the chosen mode.
+  const mode = themeMode((await cookies()).get(THEME_COOKIE)?.value);
   return (
-    <html lang="en-GB" className={`${inter.variable} ${playfair.variable} ${roboto.variable}`}>
+    <html lang="en-GB" data-theme={mode} className={`${inter.variable} ${playfair.variable} ${roboto.variable}`}>
       <body>
         <AntdRegistry>
-          <Providers>{children}</Providers>
+          <Providers initialMode={mode}>{children}</Providers>
         </AntdRegistry>
       </body>
     </html>

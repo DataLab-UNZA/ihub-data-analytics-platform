@@ -11,20 +11,23 @@ import { bff } from '@/components/features/explore/client';
 const DATE = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 const vizLabel = (key) => VIZ_TYPES.find((v) => v.key === key)?.label ?? key;
 
-function ListHeader({ title, count, action, search, onSearch }) {
+function ListHeader({ title, count, action, search, onSearch, as: Heading = 'h1' }) {
   return (
     <div className="list-view__head">
-      <h1 className="list-view__title">
+      <Heading className="list-view__title">
         {title} <span className="list-view__count">{count}</span>
-      </h1>
+      </Heading>
       <Input className="list-view__search" allowClear prefix={<SearchOutlined />} placeholder={`Search ${title.toLowerCase()}`} value={search} onChange={(e) => onSearch(e.target.value)} />
       {action}
     </div>
   );
 }
 
-/** Saved charts, like Superset's chart list. */
-export function ChartList({ charts, datasets, canCreate }) {
+/**
+ * Saved charts, like Superset's chart list. `title` and `as` let a page that already has its
+ * own <h1> (the Charts page) show the list as a section.
+ */
+export function ChartList({ charts, datasets, canCreate, title = 'Charts', as = 'h1' }) {
   const router = useRouter();
   const { message } = App.useApp();
   const [search, setSearch] = useState('');
@@ -44,7 +47,8 @@ export function ChartList({ charts, datasets, canCreate }) {
   return (
     <section className="list-view">
       <ListHeader
-        title="Charts"
+        title={title}
+        as={as}
         count={charts.length}
         search={search}
         onSearch={setSearch}
@@ -103,8 +107,11 @@ export function ChartList({ charts, datasets, canCreate }) {
   );
 }
 
-/** Dashboards, like Superset's dashboard list: favourites, status and a "+ Dashboard" button. */
-export function DashboardList({ dashboards, canCreate, startNew }) {
+/**
+ * Dashboards, like Superset's dashboard list: favourites, status and a "+ Dashboard" button.
+ * `heading` and `as` let a page with its own <h1> (the Dashboards page) show it as a section.
+ */
+export function DashboardList({ dashboards, canCreate, startNew, heading = 'Dashboards', as = 'h1' }) {
   const router = useRouter();
   const { message } = App.useApp();
   const [search, setSearch] = useState('');
@@ -147,7 +154,8 @@ export function DashboardList({ dashboards, canCreate, startNew }) {
   return (
     <section className="list-view">
       <ListHeader
-        title="Dashboards"
+        title={heading}
+        as={as}
         count={rows.length}
         search={search}
         onSearch={setSearch}

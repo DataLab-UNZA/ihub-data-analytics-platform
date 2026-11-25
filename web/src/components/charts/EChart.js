@@ -2,9 +2,10 @@
 
 import { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
-import { echartsTheme } from '@/theme/tokens';
+import { useThemeMode } from '@/theme/Providers';
+import { echartsThemeFor, optionForMode } from '@/theme/tokens';
 
-let themeRegistered = false;
+let themesRegistered = false;
 let worldMap = null;
 
 function loadWorldMap() {
@@ -21,14 +22,16 @@ function needsWorldMap(option) {
 }
 
 /**
- * An Apache ECharts chart with the iHub (Superset) theme. Resizes with its container and
- * loads the world map only when a chart needs it.
+ * An Apache ECharts chart with the iHub (Superset) theme, light or dark to match the page.
+ * Resizes with its container and loads the world map only when a chart needs it. A change of
+ * mode re-creates the chart with the other theme.
  *
  * @param {object} option An ECharts option (see src/lib/viz.js).
  * @param {number|string} height Height of the chart area.
  * @param {(params: object) => void} onClick Called with the ECharts event when a mark is clicked.
  */
 export default function EChart({ option, height = 360, ariaLabel, onClick }) {
+  const { mode } = useThemeMode();
   const element = useRef(null);
   const chart = useRef(null);
   const clickHandler = useRef(onClick);
@@ -37,11 +40,12 @@ export default function EChart({ option, height = 360, ariaLabel, onClick }) {
   }, [onClick]);
 
   useEffect(() => {
-    if (!themeRegistered) {
-      echarts.registerTheme('ihub', echartsTheme);
-      themeRegistered = true;
+    if (!themesRegistered) {
+      echarts.registerTheme('ihub', echartsThemeFor('light'));
+      echarts.registerTheme('ihub-dark', echartsThemeFor('dark'));
+      themesRegistered = true;
     }
-    const instance = echarts.init(element.current, 'ihub', { renderer: 'canvas' });
+    const instance = echarts.init(element.current, mode === 'dark' ? 'ihub-dark' : 'ihub', { renderer: 'canvas' });
     chart.current = instance;
     instance.on('click', (params) => clickHandler.current?.(params));
     const observer = new ResizeObserver(() => instance.resize());
@@ -51,12 +55,12 @@ export default function EChart({ option, height = 360, ariaLabel, onClick }) {
       instance.dispose();
       chart.current = null;
     };
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     let cancelled = false;
     const apply = () => {
-      if (!cancelled && chart.current && option) chart.current.setOption(option, { notMerge: true });
+      if (!cancelled && chart.current && option) chart.current.setOption(optionForMode(option, mode), { notMerge: true });
     };
     if (needsWorldMap(option) && !echarts.getMap('world')) {
       loadWorldMap().then(apply);
@@ -67,7 +71,7 @@ export default function EChart({ option, height = 360, ariaLabel, onClick }) {
     return () => {
       cancelled = true;
     };
-  }, [option]);
+  }, [option, mode]);
 
   return <div ref={element} className="echart" style={{ height }} role="img" aria-label={ariaLabel} />;
 }

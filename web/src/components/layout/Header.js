@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Dropdown, Menu } from 'antd';
-import { CameraOutlined, DownOutlined, LogoutOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
+import { Dropdown, Menu, Switch } from 'antd';
+import { DownOutlined, LogoutOutlined, MoonOutlined, PlusOutlined, SunOutlined, UserOutlined } from '@ant-design/icons';
 import Avatar from '@/components/ui/Avatar';
 import { NAV_ITEMS, activePath } from '@/config/navigation';
 import { roleLabel } from '@/config/roles';
 import { can } from '@/lib/permissions';
+import { useThemeMode } from '@/theme/Providers';
 
 function visible(items, user) {
   return items
@@ -25,12 +26,15 @@ function toMenu(items) {
 
 /**
  * The top header, in the style of Apache Superset: brand, the main menu, a "+" menu for
- * new charts and dashboards, the data refresh time and the user menu.
+ * new charts and dashboards, the data refresh time and the user menu. The user menu holds
+ * the light and dark mode switch.
  */
 export default function Header({ active, user, refreshed }) {
   const selected = activePath(active);
   const items = toMenu(visible(NAV_ITEMS, user));
   const canBuild = can(user, 'reports:manage');
+  const { mode, toggleMode } = useThemeMode();
+  const dark = mode === 'dark';
 
   const createItems = [
     { key: 'chart', label: <Link href="/explore">Chart</Link> },
@@ -49,7 +53,16 @@ export default function Header({ active, user, refreshed }) {
           ),
         },
         { key: 'account', icon: <UserOutlined />, label: <Link href="/account">My account</Link> },
-        { key: 'photo', icon: <CameraOutlined />, label: <Link href="/account#profile-photo">Profile photo</Link> },
+        {
+          key: 'theme',
+          icon: dark ? <MoonOutlined /> : <SunOutlined />,
+          label: (
+            <span className="header__theme">
+              Dark mode
+              <Switch size="small" checked={dark} aria-label="Dark mode" tabIndex={-1} />
+            </span>
+          ),
+        },
         { type: 'divider' },
         {
           key: 'signout',
@@ -91,8 +104,23 @@ export default function Header({ active, user, refreshed }) {
             </button>
           </Dropdown>
         )}
+        {!user && (
+          <button
+            className="header__icon-button"
+            type="button"
+            onClick={toggleMode}
+            aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={dark ? 'Light mode' : 'Dark mode'}
+          >
+            {dark ? <SunOutlined /> : <MoonOutlined />}
+          </button>
+        )}
         {user && (
-          <Dropdown menu={{ items: userItems }} placement="bottomRight" trigger={['click']}>
+          <Dropdown
+            menu={{ items: userItems, onClick: ({ key }) => key === 'theme' && toggleMode() }}
+            placement="bottomRight"
+            trigger={['click']}
+          >
             <button className="header__user" type="button" aria-label="Account menu">
               <Avatar user={user} />
               <span className="header__user-name">{user.name || user.email}</span>

@@ -3,7 +3,7 @@ import ExploreHome from '@/components/features/explore/ExploreHome';
 import ExploreView from '@/components/features/explore/ExploreView';
 import { apiGet, apiTry, currentUser } from '@/lib/api';
 import { can } from '@/lib/permissions';
-import { loadCatalogue } from '@/services/explore';
+import { loadModules } from '@/services/explore';
 
 export const metadata = {
   title: 'Explore',
@@ -27,15 +27,15 @@ export default async function ExplorePage({ searchParams }) {
   }
 
   const user = await currentUser();
-  const themes = await loadCatalogue(user);
+  const modules = await loadModules(user);
   return (
     <>
       <PageHeader title="Explore" filters={false} />
       <p className="guide-intro">
-        Pick a question to see the answer as a chart. Every chart can be narrowed by year, kind of publication or school, and
-        explained in plain words.
+        Pick a question to see the answer as a chart, grouped by module. Research charts can be narrowed by year, kind of
+        publication or school, and every chart is explained in plain words.
       </p>
-      <ExploreHome themes={themes} canBuild={can(user, 'research:read')} />
+      <ExploreHome modules={modules} canBuild={can(user, 'research:read')} />
     </>
   );
 }

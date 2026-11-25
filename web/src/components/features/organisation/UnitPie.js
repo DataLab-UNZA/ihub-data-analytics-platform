@@ -2,7 +2,8 @@
 
 import { useMemo } from 'react';
 import EChart from '@/components/charts/EChart';
-import { categorical } from '@/theme/tokens';
+import { useThemeMode } from '@/theme/Providers';
+import { categoricalFor } from '@/theme/tokens';
 import { cx, formatNumber } from '@/lib/format';
 
 const SHORT_NAME = /^(School of|Institute of|Directorate of|Graduate School of)\s+/;
@@ -10,7 +11,12 @@ const SHORT_NAME = /^(School of|Institute of|Directorate of|Graduate School of)\
 /** "School of Medicine" -> "Medicine": the legend is narrow and every unit has to fit. */
 const shortName = (name) => name.replace(SHORT_NAME, '');
 
-const colourOf = (index) => categorical[index % categorical.length];
+/** The categorical colour of the index-th slice, in the light or dark palette. */
+const colourIn = (mode, index) => {
+  const palette = categoricalFor(mode);
+  return palette[index % palette.length];
+};
+
 
 /**
  * Compact pie of how the period's publications are spread across the units, with a legend that
@@ -22,6 +28,7 @@ const colourOf = (index) => categorical[index % categorical.length];
  * @param {(id: string) => void} onSelect Called when a slice or legend entry is chosen.
  */
 export default function UnitPie({ slices, emptyUnits = 0, selectedId, onSelect }) {
+  const { mode } = useThemeMode();
   const total = slices.reduce((sum, slice) => sum + slice.count, 0);
 
   const option = useMemo(
@@ -47,12 +54,12 @@ export default function UnitPie({ slices, emptyUnits = 0, selectedId, onSelect }
             name: slice.name,
             value: slice.count,
             selected: slice.id === selectedId,
-            itemStyle: { color: colourOf(index) },
+            itemStyle: { color: colourIn(mode, index) },
           })),
         },
       ],
     }),
-    [slices, selectedId],
+    [slices, selectedId, mode],
   );
 
   if (!total) {
@@ -77,7 +84,7 @@ export default function UnitPie({ slices, emptyUnits = 0, selectedId, onSelect }
               title={`${slice.name}: ${formatNumber(slice.count)} publications`}
               onClick={() => onSelect(slice.id)}
             >
-              <span className="pie-legend__swatch" style={{ background: colourOf(index) }} aria-hidden="true" />
+              <span className="pie-legend__swatch" style={{ background: colourIn(mode, index) }} aria-hidden="true" />
               <span className="pie-legend__name">{shortName(slice.name)}</span>
               <span className="pie-legend__value">{formatNumber(slice.count)}</span>
             </button>

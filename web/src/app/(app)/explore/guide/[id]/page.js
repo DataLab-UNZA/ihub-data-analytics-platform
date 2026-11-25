@@ -14,7 +14,7 @@ export const metadata = {
 export default async function GuidePage({ params, searchParams }) {
   const { id } = await params;
   const user = await currentUser();
-  const [themes, options, dashboards] = await Promise.all([loadCatalogue(user), loadFilterOptions(), apiTry('/api/dashboards')]);
+  const [themes, options, dashboards] = await Promise.all([loadCatalogue(user), loadFilterOptions(), user ? apiTry('/api/dashboards') : null]);
   const theme = themes.find((item) => item.guides.some((guide) => guide.id === id));
   if (!theme) {
     // A chart that exists but is not for this visitor (data quality) is a 403, anything else a 404.
